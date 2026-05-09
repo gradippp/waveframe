@@ -1,8 +1,8 @@
 node_modules
 dist
+dist-app
 .DS_Store
 *.local
 coverage
 .eslintcache
-dist-app
-audio_test
+audio_test/
