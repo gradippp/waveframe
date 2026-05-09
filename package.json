@@ -32,6 +32,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gradippp/waveframe.git"
+  },
   "packageManager": "pnpm@10.26.2",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
