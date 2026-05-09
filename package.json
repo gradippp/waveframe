@@ -1,11 +1,15 @@
 {
   "name": "waveframe",
   "version": "0.1.1",
-  "description": "A customizable React audio player component with SoundCloud-style waveforms.",
+  "description": "A high-performance, customizable React audio player with SoundCloud-style waveforms and built-in audio analysis.",
   "type": "module",
   "main": "./dist/waveframe.umd.js",
   "module": "./dist/waveframe.es.js",
   "types": "./dist/index.d.ts",
+  "homepage": "https://gradippp.github.io/waveframe",
+  "bugs": {
+    "url": "https://github.com/gradippp/waveframe/issues"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -29,8 +33,18 @@
     "test": "vitest",
     "type-check": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "react",
+    "audio-player",
+    "waveform",
+    "soundcloud-style",
+    "audio-visualizer",
+    "web-audio-api",
+    "component-library",
+    "typescript",
+    "tailwind-css"
+  ],
+  "author": "Agradip <me@agradip.fyi>",
   "license": "MIT",
   "repository": {
     "type": "git",
