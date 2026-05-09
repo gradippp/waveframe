@@ -79,3 +79,5 @@ export const highlightCode = (code: string): string[] => {
     return h;
   });
 };
+
+export * from './audio';

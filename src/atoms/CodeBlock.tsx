@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 
 interface CodeBlockProps {
   code: string;
-  highlightFn: (code: string) => React.ReactNode[];
+  highlightFn: (code: string) => string[];
   onCopy: () => void;
   copied: boolean;
 }

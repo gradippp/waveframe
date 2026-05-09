@@ -1,15 +1,15 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { WaveframeTheme } from '../types';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useResampledPeaks } from '../hooks/useResampledPeaks';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { ArtworkOverlay } from '../molecules/ArtworkOverlay';
 import { Waveform } from '../organisms/Waveform';
-import { formatTime } from '../utils';
+import { formatTime, generatePeaks } from '../utils';
 
 export interface WaveframePlayerProps {
   audioUrl: string;
-  peaks: number[];
+  peaks?: number[];
   artworkUrl?: string;
   title?: string;
   artist?: string;
@@ -22,11 +22,12 @@ export interface WaveframePlayerProps {
   barWidth?: number;
   barGap?: number;
   theme?: WaveframeTheme;
+  autoAnalyze?: boolean;
 }
 
 export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   audioUrl,
-  peaks,
+  peaks: propPeaks,
   artworkUrl,
   title,
   artist,
@@ -39,20 +40,46 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   barWidth = 2,
   barGap = 1,
   theme,
+  autoAnalyze = true,
 }) => {
   const { isPlaying, currentTime, duration, togglePlay, seek, audioProps } = useAudioPlayer(audioUrl);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const containerWidth = useResizeObserver(containerRef);
+  
+  const [internalPeaks, setInternalPeaks] = useState<number[] | undefined>(undefined);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Trigger analysis if peaks are missing and autoAnalyze is on
+  useEffect(() => {
+    if (!propPeaks && autoAnalyze && audioUrl) {
+      const analyze = async () => {
+        setIsAnalyzing(true);
+        try {
+          const generated = await generatePeaks(audioUrl, 512);
+          setInternalPeaks(generated);
+        } catch (e) {
+          console.error('Auto-analysis failed', e);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+      analyze();
+    } else {
+      setInternalPeaks(undefined);
+    }
+  }, [audioUrl, propPeaks, autoAnalyze]);
+
+  const activePeaks = propPeaks || internalPeaks || [];
 
   const targetCount = useMemo(() => {
     if (typeof resolution === 'number') return resolution;
     if (containerWidth > 0) {
       return Math.max(1, Math.floor(containerWidth / (barWidth + barGap)));
     }
-    return peaks.length || 1;
-  }, [resolution, containerWidth, barWidth, barGap, peaks.length]);
+    return activePeaks.length || 1;
+  }, [resolution, containerWidth, barWidth, barGap, activePeaks.length]);
 
-  const resampledPeaks = useResampledPeaks(peaks, targetCount);
+  const resampledPeaks = useResampledPeaks(activePeaks, targetCount);
 
   const waveColor = useMemo(() => {
     if (propWaveColor) return propWaveColor;
@@ -86,6 +113,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
         title={title} 
         isPlaying={isPlaying} 
         onToggle={togglePlay} 
+        isLoading={isAnalyzing}
       />
 
       <div className="flex-1 w-full flex flex-col justify-between py-1">

@@ -6,11 +6,14 @@ interface SettingsPanelProps {
   trackInfo: TrackInfo;
   config: WaveformConfig;
   scale: number;
+  isAnalyzing: boolean;
+  onAnalyze: () => void;
   onThemeChange: (theme: Partial<WaveframeTheme>) => void;
   onTrackChange: (track: Partial<TrackInfo>) => void;
   onConfigChange: (config: Partial<WaveformConfig>) => void;
   onScaleChange: (scale: number) => void;
   onTogglePreset: (type: 'light' | 'dark') => void;
+  onClearPeaks: () => void;
 }
 
 const LIGHT_THEME = { bg: '#ffffff', primary: '#3b82f6', text: '#111827', border: '#f3f4f6' };
@@ -21,11 +24,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = memo(({
   trackInfo,
   config,
   scale,
+  isAnalyzing,
+  onAnalyze,
   onThemeChange,
   onTrackChange,
   onConfigChange,
   onScaleChange,
   onTogglePreset,
+  onClearPeaks,
 }) => {
   return (
     <div className="w-full lg:w-96 border-l h-full overflow-y-auto p-6 shadow-2xl flex flex-col gap-8 bg-white border-gray-200 transition-colors duration-300">
@@ -97,7 +103,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = memo(({
       </div>
 
       <div>
-        <h2 className="text-xs font-black uppercase tracking-widest mb-4 text-gray-400">Track</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">Peaks</h2>
+          <button
+            onClick={onClearPeaks}
+            className="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-all underline decoration-dotted"
+          >
+            Clear (Use Auto)
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-400 mb-2 leading-relaxed">
+          Omit manual peaks to test the internal "plug-and-play" auto-analysis.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">Track</h2>
+          <button
+            onClick={onAnalyze}
+            disabled={isAnalyzing}
+            className={`text-[10px] font-bold uppercase tracking-widest transition-all ${
+              isAnalyzing ? 'text-gray-300 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600'
+            }`}
+          >
+            {isAnalyzing ? 'Analyzing...' : 'Analyze Audio'}
+          </button>
+        </div>
         <div className="flex flex-col gap-3">
           {[
             { key: 'title', label: 'Title' },

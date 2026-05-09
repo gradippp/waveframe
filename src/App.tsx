@@ -3,10 +3,9 @@ import { WaveframePlayer } from './components/WaveframePlayer';
 import { SettingsPanel } from './organisms/SettingsPanel';
 import { CodeBlock } from './atoms/CodeBlock';
 import { usePersistentSettings } from './hooks/usePersistentSettings';
-import { highlightCode } from './utils';
+import { highlightCode, generatePeaks } from './utils';
 import { TrackInfo, WaveframeTheme, WaveformConfig } from './types';
 
-const dummyPeaks = Array.from({ length: 1024 }, () => Math.random() * 0.8 + 0.1);
 const LIGHT_THEME = { bg: '#ffffff', primary: '#3b82f6', text: '#111827', border: '#f3f4f6' };
 const DARK_THEME = { bg: '#111827', primary: '#3b82f6', text: '#f9fafb', border: '#1f2937' };
 
@@ -26,6 +25,25 @@ function App() {
     height: 100,
   });
   const [scale, setScale] = usePersistentSettings('scale', 1);
+  const [peaks, setPeaks] = usePersistentSettings('peaks', undefined);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleClearPeaks = useCallback(() => {
+    setPeaks(undefined);
+  }, [setPeaks]);
+
+  const handleAnalyze = useCallback(async () => {
+    setIsAnalyzing(true);
+    try {
+      const newPeaks = await generatePeaks(trackInfo.audioUrl, 512);
+      setPeaks(newPeaks);
+    } catch (e) {
+      console.error('Analysis failed', e);
+      alert('Failed to analyze audio. Ensure the URL is direct and supports CORS.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [trackInfo.audioUrl, setPeaks]);
 
   const [copied, setCopied] = useState(false);
 
@@ -36,11 +54,16 @@ function App() {
     setTimeout(() => setCopied(false), 2000);
   }, []);
 
-  const generatedCode = useMemo(() => `const peaks = [${dummyPeaks.slice(0, 8).map(p => p.toFixed(2)).join(', ')}, ...];
+  const generatedCode = useMemo(() => {
+    const peaksArrayStr = peaks 
+      ? `const peaks = [${peaks.slice(0, 8).map((p: number) => p.toFixed(2)).join(', ')}, ...];`
+      : '// Omit peaks to enable internal auto-analysis';
+
+    return `${peaksArrayStr}
 
 <WaveframePlayer
   audioUrl="${trackInfo.audioUrl}"
-  peaks={peaks}
+  ${peaks ? 'peaks={peaks}' : '// autoAnalyze={true}'}
   artworkUrl="${trackInfo.artworkUrl}"
   title="${trackInfo.title}"
   artist="${trackInfo.artist}"
@@ -54,7 +77,8 @@ function App() {
     "text": "${theme.text}",
     "border": "${theme.border}"
   }}
-/>`, [trackInfo, theme, waveformConfig, scale]);
+/>`;
+  }, [trackInfo, theme, waveformConfig, scale, peaks]);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row h-screen overflow-hidden bg-white font-sans">
@@ -73,7 +97,7 @@ function App() {
                 height={waveformConfig.height * scale}
                 theme={theme}
                 className="w-full"
-                peaks={dummyPeaks}
+                peaks={peaks}
               />
             </div>
           </div>
@@ -95,6 +119,9 @@ function App() {
         trackInfo={trackInfo}
         config={waveformConfig}
         scale={scale}
+        isAnalyzing={isAnalyzing}
+        onAnalyze={handleAnalyze}
+        onClearPeaks={handleClearPeaks}
         onThemeChange={(t) => setTheme({ ...theme, ...t })}
         onTrackChange={(t) => setTrackInfo({ ...trackInfo, ...t })}
         onConfigChange={(c) => setWaveformConfig({ ...waveformConfig, ...c })}
