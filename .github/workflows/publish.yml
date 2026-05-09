@@ -12,24 +12,24 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm 📦
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Install Node.js 🟢
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
-      - name: Install dependencies 🛠️
+      - name: Install dependencies
         run: pnpm install
 
-      - name: Build Library 🏗️
+      - name: Build Library
         run: pnpm run build:lib
 
-      - name: Publish 🚀
+      - name: Publish
         run: pnpm publish --provenance --no-git-checks --access public

@@ -1,40 +1,78 @@
 # Waveframe
 
-A customizable React audio player component with SoundCloud-style waveforms.
+A high-performance, professional React audio player featuring SoundCloud-style waveforms, built-in audio analysis, and deep customization.
+
+[![NPM Version](https://img.shields.io/npm/v/waveframe?color=blue&style=flat-square)](https://www.npmjs.com/package/waveframe)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
+[![GitHub](https://img.shields.io/badge/github-gradippp%2Fwaveframe-black?style=flat-square&logo=github)](https://github.com/gradippp/waveframe)
 
 ## Features
 
-- **SoundCloud-style Waveform**: Supports pre-calculated peak points for instant rendering.
-- **Customizable UI**: Styled with Tailwind CSS, easy to theme and adapt.
-- **Artwork Support**: Display track artwork prominently.
-- **High Performance**: Built with Vite and TypeScript.
+- **Ultra-Efficient Rendering**: Uses a dual-layer CSS-clipped canvas engine. No 60fps re-draws during playback, saving CPU and battery.
+- **Auto-Analysis**: Don't have peak data? Just provide a URL. Waveframe uses the Web Audio API to analyze and generate waveforms on-the-fly.
+- **Modern Theming**: Fully customizable with a single theme object. Supports deep navy dark modes and crisp light themes.
+- **Responsive & Fluid**: Proportional scaling ensures your waveform looks perfect on any screen size, from mobile to ultra-wide.
+- **Developer First**: Built with TypeScript, fully memoized, and includes a live [Configuration Playground](https://gradippp.github.io/waveframe).
 
 ## Installation
 
 ```bash
 pnpm add waveframe
+# or
+npm install waveframe
 ```
 
-## Usage
+> **Note**: Waveframe requires **React 19+**.
+
+## Quick Start
 
 ```tsx
 import { WaveframePlayer } from 'waveframe';
+import 'waveframe/style.css'; // Essential styles
 
-const peaks = [0.1, 0.5, 0.8, 0.3, ...]; // 100-200 points recommended
-
-function App() {
+const App = () => {
   return (
     <WaveframePlayer
-      audioUrl="path/to/audio.mp3"
-      peaks={peaks}
-      artworkUrl="path/to/artwork.jpg"
-      title="Track Title"
-      artist="Artist Name"
+      title="Electronic Sunset"
+      artist="Digital Nomad"
+      audioUrl="https://example.com/audio.mp3"
+      artworkUrl="https://example.com/cover.jpg"
     />
   );
-}
+};
+```
+
+## API Reference
+
+### Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `audioUrl` | `string` | **Required** | Direct link to your audio file. |
+| `peaks` | `number[]` | `undefined` | Optional array of normalized peaks (0-1). Triggers **Auto-Analysis** if omitted. |
+| `title` | `string` | `undefined` | Track title. |
+| `artist` | `string` | `undefined` | Artist name. |
+| `artworkUrl` | `string` | `undefined` | Cover art image URL. |
+| `theme` | `WaveframeTheme` | `Light` | Object to customize colors (see below). |
+| `resolution` | `number \| 'auto'`| `'auto'` | Target number of waveform bars. |
+| `barWidth` | `number` | `2` | Width of waveform bars in pixels. |
+| `barGap` | `number` | `1` | Space between bars in pixels. |
+| `height` | `number` | `80` | Height of the waveform in pixels. |
+| `autoAnalyze`| `boolean` | `true` | Automatically generate peaks if missing. |
+
+### Theme Object
+
+Customizing the player's palette is straightforward:
+
+```tsx
+theme={{
+  bg: "#111827",      // Main card background
+  primary: "#3b82f6", // Accent (progress & play button)
+  text: "#f9fafb",    // Text color
+  border: "#1f2937"   // Border and divider lines
+}}
 ```
 
 ## License
 
-MIT
+MIT © [Agradip](mailto:me@agradip.fyi)
