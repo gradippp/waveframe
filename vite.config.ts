@@ -6,9 +6,10 @@ import { resolve, join } from 'path';
 import fs from 'fs';
 
 const isAppBuild = process.env.BUILD_MODE === 'app';
+const isDevBranch = process.env.IS_DEV === 'true';
 
 export default defineConfig({
-  base: isAppBuild ? './' : '/',
+  base: isAppBuild ? (isDevBranch ? '/waveframe/dev/' : '/waveframe/') : '/',
   plugins: [
     react(),
     tailwindcss(),
