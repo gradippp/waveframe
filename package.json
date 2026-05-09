@@ -1,6 +1,6 @@
 {
   "name": "waveframe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A customizable React audio player component with SoundCloud-style waveforms.",
   "type": "module",
   "main": "./dist/waveframe.umd.js",
