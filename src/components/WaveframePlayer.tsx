@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 
 export interface WaveframePlayerProps {
   audioUrl: string;
@@ -10,6 +10,10 @@ export interface WaveframePlayerProps {
   progressColor?: string;
   height?: number;
   className?: string;
+  style?: React.CSSProperties;
+  resolution?: number | 'auto';
+  barWidth?: number;
+  barGap?: number;
 }
 
 export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
@@ -18,16 +22,82 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
   artworkUrl,
   title,
   artist,
-  waveColor = 'var(--wf-wave-color, #e5e7eb)',
-  progressColor = 'var(--wf-progress-color, #f97316)',
+  waveColor = '#e5e7eb',
+  progressColor = '#3b82f6',
   height = 80,
   className = '',
+  style,
+  resolution = 'auto',
+  barWidth = 2,
+  barGap = 1,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Sync duration if metadata is already loaded (cached audio)
+  useEffect(() => {
+    if (audioRef.current && audioRef.current.readyState >= 1) {
+      setDuration(audioRef.current.duration);
+    }
+  }, [audioUrl]);
+
+  // Track container width for 'auto' resolution
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const targetCount = useMemo(() => {
+    if (typeof resolution === 'number') return resolution;
+    if (containerWidth > 0) {
+      return Math.max(1, Math.floor(containerWidth / (barWidth + barGap)));
+    }
+    return peaks.length || 1;
+  }, [resolution, containerWidth, barWidth, barGap, peaks.length]);
+
+  const resampledPeaks = useMemo(() => {
+    if (peaks.length === 0) return [];
+    if (peaks.length === targetCount) return peaks;
+
+    const resampled = new Array(targetCount);
+    const ratio = peaks.length / targetCount;
+
+    if (ratio > 1) {
+      // Downsampling: Bucket Max
+      for (let i = 0; i < targetCount; i++) {
+        let max = 0;
+        const start = Math.floor(i * ratio);
+        const end = Math.floor((i + 1) * ratio);
+        for (let j = start; j < end; j++) {
+          if (peaks[j] > max) max = peaks[j];
+        }
+        resampled[i] = max;
+      }
+    } else {
+      // Upsampling: Linear Interpolation
+      for (let i = 0; i < targetCount; i++) {
+        const position = i * ratio;
+        const index = Math.floor(position);
+        const nextIndex = Math.min(index + 1, peaks.length - 1);
+        const fraction = position - index;
+        resampled[i] = peaks[index] + (peaks[nextIndex] - peaks[index]) * fraction;
+      }
+    }
+    return resampled;
+  }, [peaks, targetCount]);
 
   const togglePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -35,9 +105,8 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(console.error);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -71,28 +140,40 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    const targetWidth = rect.width * dpr;
+    const targetHeight = rect.height * dpr;
 
-    // Set actual size in memory (scaled to account for extra pixel density)
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
 
     const draw = () => {
+      if (resampledPeaks.length === 0) return;
       const { width, height } = canvas;
       ctx.clearRect(0, 0, width, height);
 
-      const barCount = peaks.length;
-      const gapRatio = 0.3; // 30% gap between bars
-      const barWidth = (width / barCount) * (1 - gapRatio);
-      const gapWidth = (width / barCount) * gapRatio;
+      const barCount = resampledPeaks.length;
+      
+      // Calculate bar dimensions
+      // If resolution is auto, we use the props directly (scaled by dpr)
+      // If resolution is a number, we scale them to fit the container
+      const actualBarTotalWidth = width / barCount;
+      const actualBarWidth = typeof resolution === 'number' 
+        ? actualBarTotalWidth * 0.7 
+        : barWidth * dpr;
+      const actualBarGap = typeof resolution === 'number'
+        ? actualBarTotalWidth * 0.3
+        : barGap * dpr;
 
       const progressX = (currentTime / duration) * width || 0;
 
       ctx.lineCap = 'round';
-      ctx.lineWidth = barWidth;
+      ctx.lineWidth = actualBarWidth;
 
-      peaks.forEach((peak, index) => {
-        const x = index * (barWidth + gapWidth) + barWidth / 2;
-        const barHeight = peak * height * 0.8; // Use 80% of height for padding
+      resampledPeaks.forEach((peak, index) => {
+        const x = index * (actualBarWidth + actualBarGap) + actualBarWidth / 2;
+        const barHeight = peak * height * 0.8;
         const yStart = (height - barHeight) / 2;
         const yEnd = yStart + barHeight;
 
@@ -105,11 +186,12 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
     };
 
     draw();
-  }, [peaks, currentTime, duration, waveColor, progressColor]);
+  }, [resampledPeaks, currentTime, duration, waveColor, progressColor, resolution, barWidth, barGap]);
 
   return (
     <div
       className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
+      style={style}
     >
       {/* Artwork with Overlay Play Button */}
       <div className="relative flex-shrink-0 w-32 h-32 md:w-40 md:h-40 overflow-hidden rounded-[var(--wf-artwork-rounded,0.75rem)] shadow-lg group/artwork">
@@ -172,7 +254,12 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         </div>
 
         {/* Waveform Container */}
-        <div className="relative w-full h-20 md:h-24 cursor-pointer" onClick={handleSeek}>
+        <div 
+          ref={containerRef} 
+          className="relative w-full cursor-pointer" 
+          style={{ height: `${height}px` }}
+          onClick={handleSeek}
+        >
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
       </div>
@@ -182,11 +269,14 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         src={audioUrl}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
       />
     </div>
   );
 };
+
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';

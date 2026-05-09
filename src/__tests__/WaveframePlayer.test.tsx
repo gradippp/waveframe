@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { WaveframePlayer } from '../components/WaveframePlayer';
 import React from 'react';
 
-// Mocking canvas and audio elements for testing
+// Mocking canvas, audio, and ResizeObserver for testing
 window.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   clearRect: vi.fn(),
   fillRect: vi.fn(),
@@ -12,6 +12,14 @@ window.HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   lineTo: vi.fn(),
   stroke: vi.fn(),
 })) as any;
+
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+window.ResizeObserver = ResizeObserverMock as any;
 
 describe('WaveframePlayer', () => {
   const defaultProps = {
@@ -37,5 +45,16 @@ describe('WaveframePlayer', () => {
     render(<WaveframePlayer {...defaultProps} />);
     const button = screen.getByRole('button');
     expect(button).toBeDefined();
+  });
+
+  it('applies style variables', () => {
+    const { container } = render(
+      <WaveframePlayer
+        {...defaultProps}
+        style={{ '--wf-bg-color': '#111827' } as React.CSSProperties}
+      />
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.style.getPropertyValue('--wf-bg-color')).toBe('#111827');
   });
 });
