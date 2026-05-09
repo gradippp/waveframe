@@ -31,8 +31,21 @@ jobs:
       - name: Build App 🏗️
         run: pnpm run build:app
 
+      - name: Set Deployment Folder 📁
+        id: folder
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/master" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "target=." >> $GITHUB_OUTPUT
+            echo "exclude=[]" >> $GITHUB_OUTPUT
+          else
+            echo "target=dev" >> $GITHUB_OUTPUT
+            echo "exclude=[]" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist-app
           branch: gh-pages
+          target-folder: ${{ steps.folder.outputs.target }}
+          clean: false # Important: prevents dev and master from deleting each other
