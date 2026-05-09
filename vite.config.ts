@@ -5,13 +5,17 @@ import tailwindcss from '@tailwindcss/vite';
 import { resolve, join } from 'path';
 import fs from 'fs';
 
+const isAppBuild = process.env.BUILD_MODE === 'app';
+
 export default defineConfig({
+  base: isAppBuild ? './' : '/',
   plugins: [
     react(),
     tailwindcss(),
-    dts({
-      insertTypesEntry: true,
-    }),
+    !isAppBuild &&
+      dts({
+        insertTypesEntry: true,
+      }),
     {
       name: 'serve-audio-test',
       configureServer(server) {
@@ -23,12 +27,14 @@ export default defineConfig({
           // 1. Handle /audio_test listing or file serving
           if (pathname === '/audio_test' || pathname === '/audio_test/') {
             const dirPath = join(process.cwd(), 'audio_test');
-            const files = fs.readdirSync(dirPath);
-            res.setHeader('Content-Type', 'text/html');
-            const list = files
-              .map((f) => `<li><a href="/audio_test/${f}">${f}</a></li>`)
-              .join('');
-            return res.end(`<h1>Audio Test Files</h1><ul>${list}</ul>`);
+            if (fs.existsSync(dirPath)) {
+              const files = fs.readdirSync(dirPath);
+              res.setHeader('Content-Type', 'text/html');
+              const list = files
+                .map((f) => `<li><a href="/audio_test/${f}">${f}</a></li>`)
+                .join('');
+              return res.end(`<h1>Audio Test Files</h1><ul>${list}</ul>`);
+            }
           }
 
           if (pathname.startsWith('/audio_test/')) {
@@ -56,7 +62,7 @@ export default defineConfig({
             }
           }
 
-          // 2. Routing Guards (Handle 404s for non-root naked paths)
+          // 2. Routing Guards (Only for dev server to prevent playground showing on all paths)
           const isViteInternal = pathname.startsWith('/@') || pathname.includes('?v=');
           const hasExtension = /\.[a-zA-Z0-9]+$/.test(pathname);
           const isRoot = pathname === '/' || pathname === '/index.html';
@@ -71,22 +77,26 @@ export default defineConfig({
       },
     },
   ],
-  build: {
-    lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'Waveframe',
-      formats: ['es', 'umd'],
-      fileName: (format) => `waveframe.${format}.js`,
-    },
-    rollupOptions: {
-      external: ['react', 'react-dom', 'tailwindcss'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          tailwindcss: 'tailwindcss',
+  build: isAppBuild
+    ? {
+        outDir: 'dist-app',
+      }
+    : {
+        lib: {
+          entry: resolve(__dirname, 'src/index.ts'),
+          name: 'Waveframe',
+          formats: ['es', 'umd'],
+          fileName: (format) => `waveframe.${format}.js`,
+        },
+        rollupOptions: {
+          external: ['react', 'react-dom', 'tailwindcss'],
+          output: {
+            globals: {
+              react: 'React',
+              'react-dom': 'ReactDOM',
+              tailwindcss: 'tailwindcss',
+            },
+          },
         },
       },
-    },
-  },
 });

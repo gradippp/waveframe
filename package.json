@@ -8,17 +8,20 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/waveframe.es.js",
-      "require": "./dist/waveframe.umd.js",
-      "types": "./dist/index.d.ts"
-    }
+      "require": "./dist/waveframe.umd.js"
+    },
+    "./style.css": "./dist/waveframe.css"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm run build:lib && pnpm run build:app",
+    "build:lib": "tsc && vite build",
+    "build:app": "tsc && cross-env BUILD_MODE=app vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
@@ -42,6 +45,7 @@
     "@typescript-eslint/parser": "^8.59.2",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
+    "cross-env": "^10.1.0",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -52,6 +56,8 @@
     "jsdom": "^29.1.1",
     "postcss": "^8.5.14",
     "prettier": "^3.8.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "tailwindcss": "^4.3.0",
     "tsc-alias": "^1.8.17",
     "typescript": "^6.0.3",
@@ -59,8 +65,8 @@
     "vite-plugin-dts": "^5.0.0",
     "vitest": "^4.1.5"
   },
-  "dependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }
