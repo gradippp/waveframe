@@ -11,22 +11,30 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm 📦
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Install Node.js 🟢
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies 🛠️
+      - name: Install dependencies
         run: pnpm install
 
-      - name: Set Branch Info ℹ️
+      - name: Build App
+        run: pnpm run build:app
+        env:
+          IS_DEV: ${{ steps.branch.outputs.is_dev }}
+
+      - name: Add .nojekyll
+        run: touch dist-app/.nojekyll
+
+      - name: Set Branch Info
         id: branch
         run: |
           if [ "${{ github.ref }}" = "refs/heads/master" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -37,20 +45,12 @@ jobs:
             echo "is_dev=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build App 🏗️
-        run: pnpm run build:app
-        env:
-          IS_DEV: ${{ steps.branch.outputs.is_dev }}
-
-      - name: Add .nojekyll 📄
-        run: touch dist-app/.nojekyll
-
-      - name: Debug Output 🔍
+      - name: Debug Output
         run: |
           echo "Build folder contents:"
           ls -R dist-app
 
-      - name: Deploy 🚀
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist-app

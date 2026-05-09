@@ -1,4 +1,4 @@
-# 🌊 Waveframe
+# Waveframe
 
 A high-performance, professional React audio player featuring SoundCloud-style waveforms, built-in audio analysis, and deep customization.
 
@@ -6,15 +6,15 @@ A high-performance, professional React audio player featuring SoundCloud-style w
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 [![GitHub](https://img.shields.io/badge/github-gradippp%2Fwaveframe-black?style=flat-square&logo=github)](https://github.com/gradippp/waveframe)
 
-## ✨ Features
+## Features
 
-- **🚀 Ultra-Efficient Rendering**: Uses a dual-layer CSS-clipped canvas engine. No 60fps re-draws during playback, saving CPU and battery.
-- **📊 Auto-Analysis**: Don't have peak data? Just provide a URL. Waveframe uses the Web Audio API to analyze and generate waveforms on-the-fly.
-- **🎨 Modern Theming**: Fully customizable with a single theme object. Supports deep navy dark modes and crisp light themes.
-- **📏 Responsive & Fluid**: Proportional scaling ensures your waveform looks perfect on any screen size, from mobile to ultra-wide.
-- **🛠️ Developer First**: Built with TypeScript, fully memoized, and includes a live [Configuration Playground](https://gradippp.github.io/waveframe).
+- **Ultra-Efficient Rendering**: Uses a dual-layer CSS-clipped canvas engine. No 60fps re-draws during playback, saving CPU and battery.
+- **Auto-Analysis**: Don't have peak data? Just provide a URL. Waveframe uses the Web Audio API to analyze and generate waveforms on-the-fly.
+- **Modern Theming**: Fully customizable with a single theme object. Supports deep navy dark modes and crisp light themes.
+- **Responsive & Fluid**: Proportional scaling ensures your waveform looks perfect on any screen size, from mobile to ultra-wide.
+- **Developer First**: Built with TypeScript, fully memoized, and includes a live [Configuration Playground](https://gradippp.github.io/waveframe).
 
-## 📦 Installation
+## Installation
 
 ```bash
 pnpm add waveframe
@@ -24,7 +24,7 @@ npm install waveframe
 
 > **Note**: Waveframe requires **React 19+**.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```tsx
 import { WaveframePlayer } from 'waveframe';
@@ -42,7 +42,7 @@ const App = () => {
 };
 ```
 
-## 📖 API Reference
+## API Reference
 
 ### Props
 
@@ -73,6 +73,6 @@ theme={{
 }}
 ```
 
-## 📄 License
+## License
 
 MIT © [Agradip](mailto:me@agradip.fyi)
