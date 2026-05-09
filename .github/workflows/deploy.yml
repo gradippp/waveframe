@@ -26,27 +26,34 @@ jobs:
       - name: Install dependencies 🛠️
         run: pnpm install
 
+      - name: Set Branch Info ℹ️
+        id: branch
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/master" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "target=." >> $GITHUB_OUTPUT
+            echo "is_dev=false" >> $GITHUB_OUTPUT
+          else
+            echo "target=dev" >> $GITHUB_OUTPUT
+            echo "is_dev=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build App 🏗️
         run: pnpm run build:app
+        env:
+          IS_DEV: ${{ steps.branch.outputs.is_dev }}
 
       - name: Add .nojekyll 📄
         run: touch dist-app/.nojekyll
 
-      - name: Set Deployment Folder 📁
-        id: folder
+      - name: Debug Output 🔍
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/master" ] || [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "target=." >> $GITHUB_OUTPUT
-            echo "exclude=[]" >> $GITHUB_OUTPUT
-          else
-            echo "target=dev" >> $GITHUB_OUTPUT
-            echo "exclude=[]" >> $GITHUB_OUTPUT
-          fi
+          echo "Build folder contents:"
+          ls -R dist-app
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist-app
           branch: gh-pages
-          target-folder: ${{ steps.folder.outputs.target }}
-          clean: false # Important: prevents dev and master from deleting each other
+          target-folder: ${{ steps.branch.outputs.target }}
+          clean: false
