@@ -18,8 +18,8 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
   artworkUrl,
   title,
   artist,
-  waveColor = '#e5e7eb', // gray-200
-  progressColor = '#f97316', // orange-500
+  waveColor = 'var(--wf-wave-color, #e5e7eb)',
+  progressColor = 'var(--wf-progress-color, #f97316)',
   height = 80,
   className = '',
 }) => {
@@ -109,10 +109,10 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
 
   return (
     <div
-      className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 bg-white border border-gray-100 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
+      className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
     >
       {/* Artwork with Overlay Play Button */}
-      <div className="relative flex-shrink-0 w-32 h-32 md:w-40 md:h-40 overflow-hidden rounded-xl shadow-lg group/artwork">
+      <div className="relative flex-shrink-0 w-32 h-32 md:w-40 md:h-40 overflow-hidden rounded-[var(--wf-artwork-rounded,0.75rem)] shadow-lg group/artwork">
         {artworkUrl ? (
           <img
             src={artworkUrl}
@@ -120,7 +120,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover/artwork:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-[var(--wf-placeholder-from,#fb923c)] to-[var(--wf-placeholder-to,#ec4899)] flex items-center justify-center">
             <svg
               className="w-16 h-16 text-white opacity-50"
               fill="currentColor"
@@ -133,11 +133,11 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
 
         {/* transclucent overlay */}
         <button
-          className="absolute inset-0 bg-black/30 backdrop-blur-[2px] opacity-0 group-hover/artwork:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer border-none outline-none"
+          className="absolute inset-0 bg-[var(--wf-overlay-color,rgba(0,0,0,0.3))] backdrop-blur-[var(--wf-overlay-blur,2px)] opacity-0 group-hover/artwork:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer border-none outline-none"
           onClick={togglePlay}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          <div className="w-14 h-14 flex items-center justify-center bg-orange-500 rounded-full text-white shadow-lg transform scale-90 group-hover/artwork:scale-100 transition-transform duration-300">
+          <div className="w-14 h-14 flex items-center justify-center bg-[var(--wf-play-btn-bg,#f97316)] rounded-full text-[var(--wf-play-btn-color,white)] shadow-lg transform scale-90 group-hover/artwork:scale-100 transition-transform duration-300">
             {isPlaying ? (
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
@@ -156,16 +156,16 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
             {title && (
-              <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight line-clamp-1">
+              <h3 className="text-xl md:text-2xl font-black text-[var(--wf-title-color,#111827)] tracking-tight line-clamp-1">
                 {title}
               </h3>
             )}
-            <div className="text-xs font-mono text-gray-400 tabular-nums">
+            <div className="text-xs font-mono text-[var(--wf-time-color,#9ca3af)] tabular-nums">
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
           {artist && (
-            <p className="text-sm md:text-base font-medium text-gray-500 line-clamp-1 tracking-wide">
+            <p className="text-sm md:text-base font-medium text-[var(--wf-artist-color,#6b7280)] line-clamp-1 tracking-wide">
               {artist}
             </p>
           )}
