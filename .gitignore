@@ -4,3 +4,5 @@ dist
 *.local
 coverage
 .eslintcache
+dist-app
+audio_test
