@@ -1,4 +1,11 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo, memo } from 'react';
+
+export interface WaveframeTheme {
+  bg: string;
+  primary: string;
+  text: string;
+  border: string;
+}
 
 export interface WaveframePlayerProps {
   audioUrl: string;
@@ -14,30 +21,56 @@ export interface WaveframePlayerProps {
   resolution?: number | 'auto';
   barWidth?: number;
   barGap?: number;
+  theme?: WaveframeTheme;
 }
 
-export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
+export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   audioUrl,
   peaks,
   artworkUrl,
   title,
   artist,
-  waveColor = '#e5e7eb',
-  progressColor = '#3b82f6',
+  waveColor: propWaveColor,
+  progressColor: propProgressColor,
   height = 80,
   className = '',
-  style,
+  style: propStyle,
   resolution = 'auto',
   barWidth = 2,
   barGap = 1,
+  theme,
 }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const progressCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [containerWidth, setContainerWidth] = useState(0);
+
+  // Derive colors from theme if provided, otherwise use defaults
+  const waveColor = useMemo(() => {
+    if (propWaveColor) return propWaveColor;
+    if (theme) return theme.bg === '#ffffff' ? '#e5e7eb' : '#374151';
+    return '#e5e7eb';
+  }, [propWaveColor, theme]);
+
+  const progressColor = propProgressColor || theme?.primary || '#3b82f6';
+
+  const mergedStyle = useMemo(() => {
+    const baseStyle = {
+      '--wf-bg-color': theme?.bg || 'white',
+      '--wf-border-color': theme?.border || '#f3f4f6',
+      '--wf-title-color': theme?.text || '#111827',
+      '--wf-artist-color': theme?.text || '#6b7280',
+      '--wf-time-color': theme?.text || '#9ca3af',
+      '--wf-play-btn-bg': theme?.primary || '#3b82f6',
+      '--wf-placeholder-from': theme?.primary || '#fb923c',
+      '--wf-placeholder-to': theme?.bg || '#ec4899',
+    };
+    return { ...baseStyle, ...propStyle } as React.CSSProperties;
+  }, [theme, propStyle]);
 
   // Sync duration if metadata is already loaded (cached audio)
   useEffect(() => {
@@ -70,13 +103,10 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
 
   const resampledPeaks = useMemo(() => {
     if (peaks.length === 0) return [];
-    if (peaks.length === targetCount) return peaks;
-
     const resampled = new Array(targetCount);
     const ratio = peaks.length / targetCount;
 
     if (ratio > 1) {
-      // Downsampling: Bucket Max
       for (let i = 0; i < targetCount; i++) {
         let max = 0;
         const start = Math.floor(i * ratio);
@@ -87,7 +117,6 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         resampled[i] = max;
       }
     } else {
-      // Upsampling: Linear Interpolation
       for (let i = 0; i < targetCount; i++) {
         const position = i * ratio;
         const index = Math.floor(position);
@@ -123,8 +152,8 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (canvasRef.current && audioRef.current && duration) {
-      const rect = canvasRef.current.getBoundingClientRect();
+    if (containerRef.current && audioRef.current && duration) {
+      const rect = containerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, x / rect.width));
       audioRef.current.currentTime = percentage * duration;
@@ -133,31 +162,33 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const progressCanvas = progressCanvasRef.current;
+    if (!canvas || !progressCanvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const pCtx = progressCanvas.getContext('2d');
+    if (!ctx || !pCtx) return;
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     const targetWidth = rect.width * dpr;
     const targetHeight = rect.height * dpr;
 
-    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-    }
+    [canvas, progressCanvas].forEach(c => {
+      if (c.width !== targetWidth || c.height !== targetHeight) {
+        c.width = targetWidth;
+        c.height = targetHeight;
+      }
+    });
 
     const draw = () => {
       if (resampledPeaks.length === 0) return;
       const { width, height } = canvas;
+      
       ctx.clearRect(0, 0, width, height);
+      pCtx.clearRect(0, 0, width, height);
 
       const barCount = resampledPeaks.length;
-      
-      // Calculate bar dimensions
-      // If resolution is auto, we use the props directly (scaled by dpr)
-      // If resolution is a number, we scale them to fit the container
       const actualBarTotalWidth = width / barCount;
       const actualBarWidth = typeof resolution === 'number' 
         ? actualBarTotalWidth * 0.7 
@@ -166,10 +197,10 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         ? actualBarTotalWidth * 0.3
         : barGap * dpr;
 
-      const progressX = (currentTime / duration) * width || 0;
-
       ctx.lineCap = 'round';
       ctx.lineWidth = actualBarWidth;
+      pCtx.lineCap = 'round';
+      pCtx.lineWidth = actualBarWidth;
 
       resampledPeaks.forEach((peak, index) => {
         const x = index * (actualBarWidth + actualBarGap) + actualBarWidth / 2;
@@ -177,21 +208,31 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         const yStart = (height - barHeight) / 2;
         const yEnd = yStart + barHeight;
 
+        // Draw on base canvas
         ctx.beginPath();
-        ctx.strokeStyle = x < progressX ? progressColor : waveColor;
+        ctx.strokeStyle = waveColor;
         ctx.moveTo(x, yStart);
         ctx.lineTo(x, yEnd);
         ctx.stroke();
+
+        // Draw on progress canvas
+        pCtx.beginPath();
+        pCtx.strokeStyle = progressColor;
+        pCtx.moveTo(x, yStart);
+        pCtx.lineTo(x, yEnd);
+        pCtx.stroke();
       });
     };
 
     draw();
-  }, [resampledPeaks, currentTime, duration, waveColor, progressColor, resolution, barWidth, barGap]);
+  }, [resampledPeaks, waveColor, progressColor, resolution, barWidth, barGap, height]);
+
+  const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
   return (
     <div
       className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
-      style={style}
+      style={mergedStyle}
     >
       {/* Artwork with Overlay Play Button */}
       <div className="relative flex-shrink-0 w-32 h-32 md:w-40 md:h-40 overflow-hidden rounded-[var(--wf-artwork-rounded,0.75rem)] shadow-lg group/artwork">
@@ -213,7 +254,6 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
           </div>
         )}
 
-        {/* transclucent overlay */}
         <button
           className="absolute inset-0 bg-[var(--wf-overlay-color,rgba(0,0,0,0.3))] backdrop-blur-[var(--wf-overlay-blur,2px)] opacity-0 group-hover/artwork:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer border-none outline-none"
           onClick={togglePlay}
@@ -256,11 +296,20 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
         {/* Waveform Container */}
         <div 
           ref={containerRef} 
-          className="relative w-full cursor-pointer" 
+          className="relative w-full cursor-pointer overflow-hidden" 
           style={{ height: `${height}px` }}
           onClick={handleSeek}
         >
-          <canvas ref={canvasRef} className="w-full h-full" />
+          {/* Base Layer (Unplayed) */}
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+          
+          {/* Progress Layer (Played) - Clipped via CSS */}
+          <div 
+            className="absolute inset-0 h-full overflow-hidden transition-[width] duration-100 ease-linear pointer-events-none"
+            style={{ width: `${progressPercent}%` }}
+          >
+            <canvas ref={progressCanvasRef} className="absolute h-full" style={{ width: `${containerWidth}px` }} />
+          </div>
         </div>
       </div>
 
@@ -275,8 +324,9 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = ({
       />
     </div>
   );
-};
+});
 
+WaveframePlayer.displayName = 'WaveframePlayer';
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds)) return '0:00';
