@@ -1,0 +1,38 @@
+/* Modern Documentation Polish */
+:root {
+  --md-sys-color-primary: #2563eb; /* Project Blue */
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #dbeafe;
+  --md-sys-color-on-primary-container: #1e3a8a;
+  
+  --typedoc-font-family: "Inter", "Space Grotesk", system-ui, -apple-system, sans-serif;
+}
+
+/* Glassmorphism effects for the header */
+.md-top-app-bar {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827 !important;
+}
+
+.md-top-app-bar a {
+  color: inherit !important;
+}
+
+/* Cleaner card styling */
+.md-card {
+  border: 1px solid #f3f4f6 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 1rem !important;
+}
+
+/* Refined typography */
+h1, h2, h3 {
+  letter-spacing: -0.025em !important;
+  font-weight: 800 !important;
+}
+
+.tsd-kind-icon {
+  border-radius: 4px;
+}
