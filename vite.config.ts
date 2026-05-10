@@ -16,6 +16,18 @@ export default defineConfig({
     !isAppBuild &&
       dts({
         insertTypesEntry: true,
+        beforeWriteFile: (filePath, content) => {
+          return {
+            filePath,
+            content: content.replace(
+              /from '(\.\.?\/[^']*)'/g,
+              (match, path) => {
+                if (path.endsWith('.js') || path.endsWith('.css')) return match;
+                return `from '${path}.js'`;
+              }
+            ),
+          };
+        },
       }),
     {
       name: 'serve-audio-test',
