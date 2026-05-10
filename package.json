@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "description": "A high-performance, customizable React audio player with SoundCloud-style waveforms and built-in audio analysis.",
   "type": "module",
-  "main": "./dist/waveframe.umd.js",
+  "main": "./dist/waveframe.cjs",
   "module": "./dist/waveframe.es.js",
   "types": "./dist/index.d.ts",
   "homepage": "https://gradippp.github.io/waveframe",
@@ -14,7 +14,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/waveframe.es.js",
-      "require": "./dist/waveframe.umd.js"
+      "require": "./dist/waveframe.cjs"
     },
     "./style.css": "./dist/waveframe.css"
   },

@@ -98,8 +98,12 @@ export default defineConfig({
         lib: {
           entry: resolve(__dirname, 'src/index.ts'),
           name: 'Waveframe',
-          formats: ['es', 'umd'],
-          fileName: (format) => `waveframe.${format}.js`,
+          formats: ['es', 'cjs'],
+          fileName: (format) => {
+            if (format === 'es') return `waveframe.es.js`;
+            if (format === 'cjs') return `waveframe.cjs`;
+            return `waveframe.${format}.js`;
+          },
         },
         rollupOptions: {
           external: ['react', 'react-dom', 'tailwindcss'],
