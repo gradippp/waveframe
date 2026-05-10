@@ -85,8 +85,8 @@ export interface WaveframePlayerProps {
 /**
  * The standard "all-in-one" Waveframe player component.
  * 
- * This component is a reference implementation that uses the `useWaveframe` headless hook
- * to compose a complete UI with artwork, metadata, and an interactive waveform.
+ * This component features a SoundCloud-inspired layout with a prominent 
+ * play/pause button positioned next to the track metadata.
  */
 export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   media,
@@ -165,37 +165,53 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
 
   return (
     <div
-      className={`group relative flex flex-col md:flex-row items-center gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
+      className={`group relative flex flex-col md:flex-row items-stretch gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
       style={mergedStyle}
     >
       <ArtworkOverlay 
         artworkUrl={resolvedArtworkUrl} 
         title={title} 
-        isPlaying={isPlaying} 
-        onToggle={togglePlay} 
         isLoading={isAnalyzing}
       />
 
-      <div className="flex-1 w-full flex flex-col justify-between py-1">
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
+      <div className="flex-1 w-full flex flex-col min-w-0">
+        <div className="flex items-center gap-4 mb-6">
+          {/* SoundCloud-style circular play button */}
+          <button
+            onClick={togglePlay}
+            className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--wf-play-btn-bg,#3b82f6)] text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] transition-all hover:scale-105 active:scale-95 cursor-pointer border-none outline-none group/play"
+          >
+            {isPlaying ? (
+              <svg className="w-6 h-6 md:w-7 md:h-7" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6 md:w-7 md:h-7 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
+
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex items-center justify-between gap-4">
+              {artist && (
+                <p className="text-[10px] md:text-xs font-bold uppercase text-[var(--wf-artist-color,#6b7280)] opacity-60 tracking-[0.1em] line-clamp-1">
+                  {artist}
+                </p>
+              )}
+              <div className="text-[10px] font-mono text-[var(--wf-time-color,#9ca3af)] tabular-nums flex-shrink-0">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </div>
+            </div>
             {title && (
-              <h3 className="text-xl md:text-2xl font-black text-[var(--wf-title-color,#111827)] tracking-tight line-clamp-1">
+              <h3 className="text-lg md:text-xl font-black text-[var(--wf-title-color,#111827)] tracking-tight line-clamp-1 mt-0.5 leading-tight">
                 {title}
               </h3>
             )}
-            <div className="text-xs font-mono text-[var(--wf-time-color,#9ca3af)] tabular-nums">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
           </div>
-          {artist && (
-            <p className="text-sm md:text-base font-medium text-[var(--wf-artist-color,#6b7280)] line-clamp-1 tracking-wide">
-              {artist}
-            </p>
-          )}
         </div>
 
-        <div ref={containerRef}>
+        <div className="mt-auto" ref={containerRef}>
           <Waveform 
             peaks={resampledPeaks}
             currentTime={currentTime}

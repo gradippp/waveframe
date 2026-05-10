@@ -1,18 +1,26 @@
 import React, { memo } from 'react';
 
+/**
+ * Props for the ArtworkOverlay component.
+ */
 interface ArtworkOverlayProps {
+  /** The URL or Object URL of the artwork image */
   artworkUrl?: string;
+  /** The title of the track (used for alt text) */
   title?: string;
-  isPlaying: boolean;
-  onToggle: (e: React.MouseEvent) => void;
+  /** Whether the artwork is currently being processed or the audio is analyzing */
   isLoading?: boolean;
 }
 
+/**
+ * A purely visual component for displaying track artwork.
+ * 
+ * It handles loading states with a blur effect and provides a consistent 
+ * container for the track image.
+ */
 export const ArtworkOverlay: React.FC<ArtworkOverlayProps> = memo(({ 
   artworkUrl, 
   title, 
-  isPlaying, 
-  onToggle,
   isLoading
 }) => {
   return (
@@ -33,28 +41,10 @@ export const ArtworkOverlay: React.FC<ArtworkOverlayProps> = memo(({
         )}
       </div>
 
-      {isLoading ? (
+      {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]">
           <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
-      ) : (
-        <button
-          className="absolute inset-0 bg-[var(--wf-overlay-color,rgba(0,0,0,0.3))] backdrop-blur-[var(--wf-overlay-blur,2px)] opacity-0 group-hover/artwork:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer border-none outline-none"
-          onClick={onToggle}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          <div className="w-14 h-14 flex items-center justify-center bg-[var(--wf-play-btn-bg,#f97316)] rounded-full text-[var(--wf-play-btn-color,white)] shadow-lg transform scale-90 group-hover/artwork:scale-100 transition-transform duration-300">
-            {isPlaying ? (
-              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-              </svg>
-            ) : (
-              <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </div>
-        </button>
       )}
     </div>
   );
