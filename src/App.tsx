@@ -3,47 +3,79 @@ import { WaveframePlayer } from './components/WaveframePlayer';
 import { SettingsPanel } from './organisms/SettingsPanel';
 import { CodeBlock } from './atoms/CodeBlock';
 import { usePersistentSettings } from './hooks/usePersistentSettings';
-import { highlightCode, generatePeaks } from './utils';
+import { highlightCode } from './utils';
 import { TrackInfo, WaveframeTheme, WaveformConfig } from './types';
+import { WaveframeEngine } from './core/WaveframeEngine';
+import { useWaveframeStore } from './hooks/useWaveframeStore';
 
 const LIGHT_THEME = { bg: '#ffffff', primary: '#3b82f6', text: '#111827', border: '#f3f4f6' };
 const DARK_THEME = { bg: '#111827', primary: '#3b82f6', text: '#f9fafb', border: '#1f2937' };
 
 function App() {
-  const [trackInfo, setTrackInfo] = usePersistentSettings('track_info', {
+  const defaultTrackInfo: TrackInfo = {
     title: 'Electronic Sunset',
     artist: 'Digital Nomad',
-    artworkUrl: 'https://picsum.photos/seed/waveframe/400/400',
+    artwork: 'https://picsum.photos/seed/waveframe/400/400',
     audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  });
+  };
 
-  const [theme, setTheme] = usePersistentSettings('theme', LIGHT_THEME);
-  const [waveformConfig, setWaveformConfig] = usePersistentSettings('waveform_config', {
-    resolution: 'auto',
+  const defaultWaveformConfig = {
+    resolution: 'auto' as const,
     barWidth: 2,
     barGap: 1,
     height: 100,
-  });
+  };
+
+  const [trackInfo, setTrackInfo] = usePersistentSettings('track_info', defaultTrackInfo);
+  const [theme, setTheme] = usePersistentSettings('theme', LIGHT_THEME);
+  const [waveformConfig, setWaveformConfig] = usePersistentSettings('waveform_config', defaultWaveformConfig);
   const [scale, setScale] = usePersistentSettings('scale', 1);
-  const [peaks, setPeaks] = usePersistentSettings('peaks', undefined);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Advanced: Manually managing the engine for uploaded files
+  const engine = useMemo(() => new WaveframeEngine(), []);
+  const { isPlaying, volume, muted, isAnalyzing, peaks } = useWaveframeStore(engine);
+
+  // The media to provide to the player
+  const media = trackInfo.audioUrl || '';
 
   const handleClearPeaks = useCallback(() => {
-    setPeaks(undefined);
-  }, [setPeaks]);
+    engine.load(media, []);
+  }, [engine, media]);
 
   const handleAnalyze = useCallback(async () => {
-    setIsAnalyzing(true);
-    try {
-      const newPeaks = await generatePeaks(trackInfo.audioUrl, 512);
-      setPeaks(newPeaks);
-    } catch (e) {
-      console.error('Analysis failed', e);
-      alert('Failed to analyze audio. Ensure the URL is direct and supports CORS.');
-    } finally {
-      setIsAnalyzing(false);
+    engine.analyze(512);
+  }, [engine]);
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setTrackInfo({
+        ...trackInfo,
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        artist: 'Local File',
+        audioUrl: '' // Clear URL since we use the file
+      });
+      engine.load(file);
     }
-  }, [trackInfo.audioUrl, setPeaks]);
+  }, [engine, trackInfo, setTrackInfo]);
+
+  const handleArtworkUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setTrackInfo({
+        ...trackInfo,
+        artwork: file
+      });
+    }
+  }, [trackInfo, setTrackInfo]);
+
+  const handleReset = useCallback(() => {
+    setTrackInfo(defaultTrackInfo);
+    setTheme(LIGHT_THEME);
+    setWaveformConfig(defaultWaveformConfig);
+    setScale(1);
+    engine.load(defaultTrackInfo.audioUrl, []);
+  }, [engine, setTrackInfo, setTheme, setWaveformConfig, setScale, defaultTrackInfo, defaultWaveformConfig]);
 
   const [copied, setCopied] = useState(false);
 
@@ -55,16 +87,24 @@ function App() {
   }, []);
 
   const generatedCode = useMemo(() => {
-    const peaksArrayStr = peaks 
+    const peaksArrayStr = peaks.length > 0
       ? `const peaks = [${peaks.slice(0, 8).map((p: number) => p.toFixed(2)).join(', ')}, ...];`
       : '// Omit peaks to enable internal auto-analysis';
+
+    const mediaProp = trackInfo.audioUrl 
+      ? `media="${trackInfo.audioUrl}"` 
+      : `media={myAudioBlob}`;
+
+    const artworkProp = typeof trackInfo.artwork === 'string'
+      ? `artwork="${trackInfo.artwork}"`
+      : `artwork={myArtworkBlob}`;
 
     return `${peaksArrayStr}
 
 <WaveframePlayer
-  audioUrl="${trackInfo.audioUrl}"
-  ${peaks ? 'peaks={peaks}' : '// autoAnalyze={true}'}
-  artworkUrl="${trackInfo.artworkUrl}"
+  ${mediaProp}
+  ${artworkProp}
+  ${peaks.length > 0 ? 'peaks={peaks}' : ''}
   title="${trackInfo.title}"
   artist="${trackInfo.artist}"
   resolution=${typeof waveformConfig.resolution === 'string' ? `"${waveformConfig.resolution}"` : waveformConfig.resolution}
@@ -83,22 +123,34 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row h-screen overflow-hidden bg-white font-sans">
       <div className="flex-1 p-8 flex flex-col items-center justify-start relative overflow-y-auto bg-gray-50/50">
-        {/* GitHub Badge - Instantly Visible */}
-        <div className="absolute top-8 right-8">
-          <a 
-            href="https://github.com/gradippp/waveframe" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-600 transition-all hover:border-gray-300 hover:text-gray-900 shadow-sm"
-          >
-            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
-            </svg>
-            GitHub
-          </a>
+        {/* Integrated Navigation Header */}
+        <div className="absolute top-0 left-0 right-0 h-16 border-b border-gray-100 bg-white/80 backdrop-blur-md px-8 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-500/20">W</div>
+            <span className="text-sm font-black tracking-tighter uppercase text-gray-900">Waveframe</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a 
+              href="./docs/index.html" 
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              API Reference
+            </a>
+            <div className="w-px h-4 bg-gray-200"></div>
+            <a 
+              href="https://github.com/gradippp/waveframe" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-gray-900 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+              </svg>
+            </a>
+          </div>
         </div>
 
-        <div className="w-full max-w-5xl flex flex-col items-center gap-12 mt-16 pb-20">
+        <div className="w-full max-w-5xl flex flex-col items-center gap-12 mt-24 pb-20">
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-3xl font-black tracking-tighter text-gray-900 uppercase">Waveframe</h1>
             <p className="text-xs text-blue-500 font-mono tracking-widest uppercase bg-blue-50 px-3 py-1 rounded-full">Configuration Playground</p>
@@ -109,10 +161,11 @@ function App() {
               <WaveframePlayer
                 {...trackInfo}
                 {...waveformConfig}
+                media={media}
                 height={waveformConfig.height * scale}
                 theme={theme}
                 className="w-full"
-                peaks={peaks}
+                engine={engine}
               />
             </div>
           </div>
@@ -134,9 +187,15 @@ function App() {
         trackInfo={trackInfo}
         config={waveformConfig}
         scale={scale}
-        isAnalyzing={isAnalyzing}
+        engineState={{ isPlaying, volume, muted, isAnalyzing }}
         onAnalyze={handleAnalyze}
         onClearPeaks={handleClearPeaks}
+        onFileUpload={handleFileUpload}
+        onArtworkUpload={handleArtworkUpload}
+        onReset={handleReset}
+        onTogglePlay={() => engine.togglePlay()}
+        onSetVolume={(v) => engine.setVolume(v)}
+        onSetMuted={(m) => engine.setMuted(m)}
         onThemeChange={(t) => setTheme({ ...theme, ...t })}
         onTrackChange={(t) => setTrackInfo({ ...trackInfo, ...t })}
         onConfigChange={(c) => setWaveformConfig({ ...waveformConfig, ...c })}

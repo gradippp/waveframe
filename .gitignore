@@ -1,8 +1,12 @@
 node_modules
 dist
 dist-app
+docs/
 .DS_Store
 *.local
 coverage
 .eslintcache
 audio_test/
+
+*storybook.log
+storybook-static

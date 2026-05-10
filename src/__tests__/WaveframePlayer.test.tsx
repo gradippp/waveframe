@@ -23,7 +23,7 @@ window.ResizeObserver = ResizeObserverMock as any;
 
 describe('WaveframePlayer', () => {
   const defaultProps = {
-    audioUrl: 'test.mp3',
+    media: 'test.mp3',
     peaks: [0.1, 0.5, 0.2],
     title: 'Test Track',
     artist: 'Test Artist',
@@ -36,7 +36,7 @@ describe('WaveframePlayer', () => {
   });
 
   it('renders with artwork when provided', () => {
-    render(<WaveframePlayer {...defaultProps} artworkUrl="test.jpg" />);
+    render(<WaveframePlayer {...defaultProps} artwork="test.jpg" />);
     const artwork = screen.getByAltText('Test Track') as HTMLImageElement;
     expect(artwork.src).toContain('test.jpg');
   });

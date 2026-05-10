@@ -31,7 +31,8 @@
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "test": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "docs": "typedoc src/index.ts"
   },
   "keywords": [
     "react",
@@ -78,6 +79,9 @@
     "react-dom": "^19.2.6",
     "tailwindcss": "^4.3.0",
     "tsc-alias": "^1.8.17",
+    "typedoc": "^0.28.19",
+    "typedoc-material-theme": "^1.4.1",
+    "typedoc-plugin-extras": "^4.0.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.11",
     "vite-plugin-dts": "^5.0.0",
