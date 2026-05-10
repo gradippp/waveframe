@@ -1,0 +1,18 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "Waveframe API Documentation",
+  "includeVersion": true,
+  "plugin": ["typedoc-material-theme", "typedoc-plugin-extras"],
+  "themeColor": "#2563eb",
+  "readme": "README.md",
+  "excludeExternals": true,
+  "githubPages": true,
+  "cleanOutputDir": true,
+  "sort": ["source-order"],
+  "titleLink": "../index.html",
+  "customCss": "src/styles/docs.css",
+  "footerLastModified": true,
+  "footerTypedocVersion": true,
+  "projectDocuments": ["docs-guides/*.md"]
+}

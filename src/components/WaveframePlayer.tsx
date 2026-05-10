@@ -1,34 +1,97 @@
-import React, { memo, useMemo, useState, useEffect } from 'react';
+import React, { memo, useMemo, useRef, useState, useEffect } from 'react';
 import { WaveframeTheme } from '../types';
-import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { WaveframeEngine } from '../core/WaveframeEngine';
+import { useWaveframe } from '../hooks/useWaveframe';
 import { useResampledPeaks } from '../hooks/useResampledPeaks';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { ArtworkOverlay } from '../molecules/ArtworkOverlay';
 import { Waveform } from '../organisms/Waveform';
-import { formatTime, generatePeaks } from '../utils';
+import { formatTime } from '../utils';
 
+/**
+ * Props for the WaveframePlayer component
+ */
 export interface WaveframePlayerProps {
-  audioUrl: string;
+  /**
+   * The audio source to play. Can be a URL string or a Blob/File object.
+   */
+  media?: string | Blob;
+  /**
+   * Optional pre-generated peaks for the waveform (0-1 range).
+   * If omitted or empty, the player will automatically analyze the media.
+   */
   peaks?: number[];
-  artworkUrl?: string;
+  /**
+   * The artwork source to display. Can be a URL string or a Blob/File object.
+   */
+  artwork?: string | Blob;
+  /**
+   * The title of the track
+   */
   title?: string;
+  /**
+   * The artist of the track
+   */
   artist?: string;
+  /**
+   * The base color of the waveform bars
+   * @default "#e5e7eb" (light) or "#374151" (dark)
+   */
   waveColor?: string;
+  /**
+   * The color of the played progress part of the waveform
+   * @default theme.primary or "#3b82f6"
+   */
   progressColor?: string;
+  /**
+   * The height of the waveform in pixels
+   * @default 80
+   */
   height?: number;
+  /**
+   * Additional CSS classes for the container
+   */
   className?: string;
+  /**
+   * Inline styles for the container
+   */
   style?: React.CSSProperties;
+  /**
+   * The number of bars to render. Use 'auto' to fit the container width.
+   * @default "auto"
+   */
   resolution?: number | 'auto';
+  /**
+   * The width of each bar in pixels (if resolution is 'auto')
+   * @default 2
+   */
   barWidth?: number;
+  /**
+   * The gap between bars in pixels (if resolution is 'auto')
+   * @default 1
+   */
   barGap?: number;
+  /**
+   * Custom theme configuration
+   */
   theme?: WaveframeTheme;
-  autoAnalyze?: boolean;
+  /**
+   * Optional WaveframeEngine instance for external control.
+   * If provided, the player will sync with this engine instead of creating its own.
+   */
+  engine?: WaveframeEngine;
 }
 
+/**
+ * The standard "all-in-one" Waveframe player component.
+ * 
+ * This component is a reference implementation that uses the `useWaveframe` headless hook
+ * to compose a complete UI with artwork, metadata, and an interactive waveform.
+ */
 export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
-  audioUrl,
+  media,
   peaks: propPeaks,
-  artworkUrl,
+  artwork,
   title,
   artist,
   waveColor: propWaveColor,
@@ -40,46 +103,43 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   barWidth = 2,
   barGap = 1,
   theme,
-  autoAnalyze = true,
+  engine: providedEngine,
 }) => {
-  const { isPlaying, currentTime, duration, togglePlay, seek, audioProps } = useAudioPlayer(audioUrl);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const containerWidth = useResizeObserver(containerRef);
-  
-  const [internalPeaks, setInternalPeaks] = useState<number[] | undefined>(undefined);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // Use the headless hook for state and controls
+  const { state, togglePlay, seek } = useWaveframe(media, {
+    peaks: propPeaks,
+    engine: providedEngine,
+  });
 
-  // Trigger analysis if peaks are missing and autoAnalyze is on
+  const { isPlaying, currentTime, duration, peaks, isAnalyzing } = state;
+
+  // Handle Artwork Blob -> Object URL
+  const [resolvedArtworkUrl, setResolvedArtworkUrl] = useState<string | undefined>(
+    typeof artwork === 'string' ? artwork : undefined
+  );
+
   useEffect(() => {
-    if (!propPeaks && autoAnalyze && audioUrl) {
-      const analyze = async () => {
-        setIsAnalyzing(true);
-        try {
-          const generated = await generatePeaks(audioUrl, 512);
-          setInternalPeaks(generated);
-        } catch (e) {
-          console.error('Auto-analysis failed', e);
-        } finally {
-          setIsAnalyzing(false);
-        }
-      };
-      analyze();
+    if (artwork instanceof Blob) {
+      const url = URL.createObjectURL(artwork);
+      setResolvedArtworkUrl(url);
+      return () => URL.revokeObjectURL(url);
     } else {
-      setInternalPeaks(undefined);
+      setResolvedArtworkUrl(artwork);
     }
-  }, [audioUrl, propPeaks, autoAnalyze]);
+  }, [artwork]);
 
-  const activePeaks = propPeaks || internalPeaks || [];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidth = useResizeObserver(containerRef);
 
   const targetCount = useMemo(() => {
     if (typeof resolution === 'number') return resolution;
     if (containerWidth > 0) {
       return Math.max(1, Math.floor(containerWidth / (barWidth + barGap)));
     }
-    return activePeaks.length || 1;
-  }, [resolution, containerWidth, barWidth, barGap, activePeaks.length]);
+    return peaks.length || 1;
+  }, [resolution, containerWidth, barWidth, barGap, peaks.length]);
 
-  const resampledPeaks = useResampledPeaks(activePeaks, targetCount);
+  const resampledPeaks = useResampledPeaks(peaks, targetCount);
 
   const waveColor = useMemo(() => {
     if (propWaveColor) return propWaveColor;
@@ -109,7 +169,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
       style={mergedStyle}
     >
       <ArtworkOverlay 
-        artworkUrl={artworkUrl} 
+        artworkUrl={resolvedArtworkUrl} 
         title={title} 
         isPlaying={isPlaying} 
         onToggle={togglePlay} 
@@ -150,8 +210,6 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
           />
         </div>
       </div>
-
-      <audio {...audioProps} />
     </div>
   );
 });

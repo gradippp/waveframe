@@ -1,40 +1,39 @@
 /**
  * Advanced Audio Utilities using Web Audio API
  */
+import { PeakAnalyzer } from '../core/PeakAnalyzer';
 
 /**
- * Loads audio from a URL, decodes it, and generates a specific number of peaks (samples)
+ * Loads audio from a URL, decodes it, and generates a specific number of peaks (samples).
+ * 
+ * This is a high-level utility function that internally manages a `PeakAnalyzer` instance.
+ * 
+ * @param audioUrl The URL of the audio file to analyze.
+ * @param samples The number of peaks (bars) to generate. Defaults to 512.
+ * @returns A promise resolving to an array of normalized peak values (0 to 1).
+ * 
+ * @example
+ * ```typescript
+ * const peaks = await generatePeaks('https://example.com/audio.mp3', 256);
+ * ```
  */
 export const generatePeaks = async (audioUrl: string, samples: number = 512): Promise<number[]> => {
-  const response = await fetch(audioUrl);
-  const arrayBuffer = await response.arrayBuffer();
-  
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-  
-  const channelData = audioBuffer.getChannelData(0); // Use left channel
-  const blockSize = Math.floor(channelData.length / samples);
-  const peaks = [];
-
-  for (let i = 0; i < samples; i++) {
-    let max = 0;
-    const start = i * blockSize;
-    const end = start + blockSize;
-    
-    for (let j = start; j < end; j++) {
-      const val = Math.abs(channelData[j]);
-      if (val > max) max = val;
-    }
-    peaks.push(max);
+  const analyzer = new PeakAnalyzer();
+  try {
+    return await analyzer.generatePeaks(audioUrl, samples);
+  } finally {
+    analyzer.dispose();
   }
-  
-  // Normalize peaks to 0-1 range
-  const maxPeak = Math.max(...peaks);
-  return peaks.map(p => p / (maxPeak || 1));
 };
 
 /**
- * Loads audio into memory as a Blob and returns a temporary Object URL
+ * Loads audio into memory as a Blob and returns a temporary Object URL.
+ * 
+ * Useful for ensuring audio data is fully loaded locally before starting 
+ * playback or analysis, which can help with CORS issues or slow networks.
+ * 
+ * @param url The URL of the remote audio file.
+ * @returns A promise resolving to a temporary `blob:` URL.
  */
 export const loadAudioToMemory = async (url: string): Promise<string> => {
   const response = await fetch(url);
@@ -43,7 +42,11 @@ export const loadAudioToMemory = async (url: string): Promise<string> => {
 };
 
 /**
- * Cleanup function to prevent memory leaks from Object URLs
+ * Cleanup function to prevent memory leaks from Object URLs.
+ * 
+ * Call this when a `blob:` URL is no longer needed (e.g., when the component unmounts).
+ * 
+ * @param url The Object URL to revoke.
  */
 export const revokeAudioMemory = (url: string) => {
   if (url && url.startsWith('blob:')) {
