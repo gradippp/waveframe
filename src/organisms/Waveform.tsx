@@ -74,6 +74,8 @@ export const Waveform: React.FC<WaveformProps> = memo(({
       pCtx.lineWidth = actualBarWidth;
 
       peaks.forEach((peak, index) => {
+        if (peak <= 0) return;
+        
         const x = index * (actualBarWidth + actualBarGap) + actualBarWidth / 2;
         const barHeight = peak * height * 0.8;
         const yStart = (height - barHeight) / 2;

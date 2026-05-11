@@ -156,8 +156,9 @@ export class WaveframeEngine {
       if (!hasPeaks) {
         this.analyze();
       }
-    } else if (peaks && peaks !== this._state.peaks) {
-      // Update peaks if they change even if media is same
+    } else if (peaks && (peaks.length !== this._state.peaks.length)) {
+      // Update peaks only if they actually look different (length check as a simple proxy for deep comparison)
+      // This helps avoid reloads if the parent passes a new array reference with same content
       this.updateState({ peaks });
     }
   }
