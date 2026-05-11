@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import dts from 'vite-plugin-dts';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve, join } from 'path';
 import fs from 'fs';
@@ -13,22 +12,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    !isAppBuild &&
-      dts({
-        insertTypesEntry: true,
-        beforeWriteFile: (filePath, content) => {
-          return {
-            filePath,
-            content: content.replace(
-              /from '(\.\.?\/[^']*)'/g,
-              (match, path) => {
-                if (path.endsWith('.js') || path.endsWith('.css')) return match;
-                return `from '${path}.js'`;
-              }
-            ),
-          };
-        },
-      }),
     {
       name: 'serve-audio-test',
       configureServer(server) {
@@ -90,30 +73,7 @@ export default defineConfig({
       },
     },
   ],
-  build: isAppBuild
-    ? {
-        outDir: 'dist-app',
-      }
-    : {
-        lib: {
-          entry: resolve(__dirname, 'src/index.ts'),
-          name: 'Waveframe',
-          formats: ['es', 'cjs'],
-          fileName: (format) => {
-            if (format === 'es') return `waveframe.es.js`;
-            if (format === 'cjs') return `waveframe.cjs`;
-            return `waveframe.${format}.js`;
-          },
-        },
-        rollupOptions: {
-          external: ['react', 'react-dom', 'tailwindcss'],
-          output: {
-            globals: {
-              react: 'React',
-              'react-dom': 'ReactDOM',
-              tailwindcss: 'tailwindcss',
-            },
-          },
-        },
-      },
+  build: {
+    outDir: isAppBuild ? 'dist-app' : 'dist',
+  },
 });
