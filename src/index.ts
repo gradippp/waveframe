@@ -1,8 +1,12 @@
 import './styles/index.css';
 export * from './components/WaveframePlayer';
+export * from './organisms/Waveform';
 export * from './core/WaveframeEngine';
 export * from './core/PlayerCore';
 export * from './core/PeakAnalyzer';
+export * from './hooks/useWaveframe';
 export * from './hooks/useWaveframeStore';
+export * from './hooks/useResampledPeaks';
+export * from './hooks/useResizeObserver';
 export * from './types';
 export * from './utils';

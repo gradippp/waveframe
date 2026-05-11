@@ -12,6 +12,8 @@ export type PlayerState = {
   volume: number;
   /** Whether the audio is currently muted */
   muted: boolean;
+  /** Any error reported by the audio element */
+  error: string | null;
 };
 
 /**
@@ -41,6 +43,7 @@ export class PlayerCore {
       duration: 0,
       volume: 1,
       muted: false,
+      error: null,
     };
 
     this.initListeners();
@@ -50,7 +53,7 @@ export class PlayerCore {
    * Subscribes to various HTMLMediaElement events to keep the internal state in sync.
    */
   private initListeners() {
-    this.audio.addEventListener('play', () => this.updateState({ isPlaying: true }));
+    this.audio.addEventListener('play', () => this.updateState({ isPlaying: true, error: null }));
     this.audio.addEventListener('pause', () => this.updateState({ isPlaying: false }));
     this.audio.addEventListener('timeupdate', () => this.updateState({ currentTime: this.audio.currentTime }));
     this.audio.addEventListener('durationchange', () => this.updateState({ duration: this.audio.duration }));
@@ -59,6 +62,19 @@ export class PlayerCore {
       muted: this.audio.muted 
     }));
     this.audio.addEventListener('ended', () => this.updateState({ isPlaying: false }));
+    this.audio.addEventListener('error', () => {
+      const error = this.audio.error;
+      let message = 'Unknown audio error';
+      if (error) {
+        switch (error.code) {
+          case error.MEDIA_ERR_ABORTED: message = 'Playback aborted'; break;
+          case error.MEDIA_ERR_NETWORK: message = 'Network error'; break;
+          case error.MEDIA_ERR_DECODE: message = 'Audio decoding failed'; break;
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED: message = 'Audio format not supported'; break;
+        }
+      }
+      this.updateState({ isPlaying: false, error: message });
+    });
   }
 
   /**
@@ -100,13 +116,20 @@ export class PlayerCore {
   public setSource(url: string) {
     this.audio.src = url;
     this.audio.load();
+    this.updateState({ error: null, currentTime: 0, duration: 0 });
   }
 
   /**
    * Starts playback. Returns a promise that resolves when playback begins.
    */
-  public play() {
-    return this.audio.play();
+  public async play() {
+    try {
+      await this.audio.play();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Playback failed';
+      this.updateState({ isPlaying: false, error: message });
+      throw e;
+    }
   }
 
   /**
@@ -119,11 +142,15 @@ export class PlayerCore {
   /**
    * Toggles between play and pause states.
    */
-  public togglePlay() {
+  public async togglePlay() {
     if (this._state.isPlaying) {
       this.pause();
     } else {
-      this.play();
+      try {
+        await this.play();
+      } catch {
+        // Error handled in play()
+      }
     }
   }
 
