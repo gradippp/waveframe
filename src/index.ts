@@ -1,7 +1,7 @@
 import './styles/index.css';
 export * from './components/WaveframePlayer';
 export * from './organisms/Waveform';
-export * from './core/WaveframeEngine';
+export * from './core/WaveframeController';
 export * from './core/PlayerCore';
 export * from './core/PeakAnalyzer';
 export * from './hooks/useWaveframe';

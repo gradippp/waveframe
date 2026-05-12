@@ -1,9 +1,8 @@
-import React, { memo, useMemo, useRef, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { WaveframeTheme } from '../types';
-import { WaveframeEngine } from '../core/WaveframeEngine';
+import { WaveframeController } from '../core/WaveframeController';
 import { useWaveframe } from '../hooks/useWaveframe';
-import { useResampledPeaks } from '../hooks/useResampledPeaks';
-import { useResizeObserver } from '../hooks/useResizeObserver';
+import { useWaveframeStore } from '../hooks/useWaveframeStore';
 import { ArtworkOverlay } from '../molecules/ArtworkOverlay';
 import { Waveform } from '../organisms/Waveform';
 import { formatTime } from '../utils';
@@ -76,10 +75,10 @@ export interface WaveframePlayerProps {
    */
   theme?: WaveframeTheme;
   /**
-   * Optional WaveframeEngine instance for external control.
-   * If provided, the player will sync with this engine instead of creating its own.
+   * Optional WaveframeController instance for external control.
+   * If provided, the player will sync with this controller instead of creating its own.
    */
-  engine?: WaveframeEngine;
+  controller?: WaveframeController;
 }
 
 /**
@@ -103,15 +102,19 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   barWidth = 2,
   barGap = 1,
   theme,
-  engine: providedEngine,
+  controller: providedController,
 }) => {
-  // Use the headless hook for state and controls
-  const { state, togglePlay, seek } = useWaveframe(media, {
+  // Use the headless hook for controller management
+  const { controller } = useWaveframe(media, {
     peaks: propPeaks,
-    engine: providedEngine,
+    controller: providedController,
   });
 
-  const { isPlaying, currentTime, duration, peaks, isAnalyzing } = state;
+  // Subscribe to needed state slices for the UI
+  const isPlaying = useWaveframeStore(controller, s => s.isPlaying);
+  const isAnalyzing = useWaveframeStore(controller, s => s.isAnalyzing);
+  const currentTime = useWaveframeStore(controller, s => s.currentTime);
+  const duration = useWaveframeStore(controller, s => s.duration);
 
   // Handle Artwork Blob -> Object URL
   const [resolvedArtworkUrl, setResolvedArtworkUrl] = useState<string | undefined>(
@@ -127,19 +130,6 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
       setResolvedArtworkUrl(artwork);
     }
   }, [artwork]);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const containerWidth = useResizeObserver(containerRef);
-
-  const targetCount = useMemo(() => {
-    if (typeof resolution === 'number') return resolution;
-    if (containerWidth > 0) {
-      return Math.max(1, Math.floor(containerWidth / (barWidth + barGap)));
-    }
-    return peaks.length || 1;
-  }, [resolution, containerWidth, barWidth, barGap, peaks.length]);
-
-  const resampledPeaks = useResampledPeaks(peaks, targetCount);
 
   const waveColor = useMemo(() => {
     if (propWaveColor) return propWaveColor;
@@ -168,17 +158,19 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
       className={`group relative flex flex-col md:flex-row items-stretch gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
       style={mergedStyle}
     >
-      <ArtworkOverlay 
-        artworkUrl={resolvedArtworkUrl} 
-        title={title} 
-        isLoading={isAnalyzing}
-      />
+      <div className="flex-shrink-0">
+        <ArtworkOverlay 
+          artworkUrl={resolvedArtworkUrl} 
+          title={title} 
+          isLoading={isAnalyzing}
+        />
+      </div>
 
       <div className="flex-1 w-full flex flex-col min-w-0">
         <div className="flex items-center gap-4 mb-6">
           {/* SoundCloud-style circular play button */}
           <button
-            onClick={togglePlay}
+            onClick={() => controller.togglePlay()}
             className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--wf-play-btn-bg,#3b82f6)] text-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.2)] transition-all hover:scale-105 active:scale-95 cursor-pointer border-none outline-none group/play"
           >
             {isPlaying ? (
@@ -211,15 +203,13 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
           </div>
         </div>
 
-        <div className="mt-auto" ref={containerRef}>
+        <div className="mt-auto">
           <Waveform 
-            peaks={resampledPeaks}
-            currentTime={currentTime}
-            duration={duration}
+            controller={controller}
+            peaks={propPeaks}
             waveColor={waveColor}
             progressColor={progressColor}
             height={height}
-            onSeek={seek}
             resolution={resolution}
             barWidth={barWidth}
             barGap={barGap}

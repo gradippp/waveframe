@@ -4,6 +4,8 @@
 export type PlayerState = {
   /** Whether the audio is currently playing */
   isPlaying: boolean;
+  /** Whether the audio is stalled (waiting for data) */
+  isStalled: boolean;
   /** The current playback time in seconds */
   currentTime: number;
   /** The total duration of the track in seconds */
@@ -39,6 +41,7 @@ export class PlayerCore {
     this.audio = new Audio();
     this._state = {
       isPlaying: false,
+      isStalled: false,
       currentTime: 0,
       duration: 0,
       volume: 1,
@@ -55,6 +58,9 @@ export class PlayerCore {
   private initListeners() {
     this.audio.addEventListener('play', () => this.updateState({ isPlaying: true, error: null }));
     this.audio.addEventListener('pause', () => this.updateState({ isPlaying: false }));
+    this.audio.addEventListener('waiting', () => this.updateState({ isStalled: true }));
+    this.audio.addEventListener('playing', () => this.updateState({ isStalled: false }));
+    this.audio.addEventListener('canplay', () => this.updateState({ isStalled: false }));
     this.audio.addEventListener('timeupdate', () => this.updateState({ currentTime: this.audio.currentTime }));
     this.audio.addEventListener('durationchange', () => this.updateState({ duration: this.audio.duration }));
     this.audio.addEventListener('volumechange', () => this.updateState({ 

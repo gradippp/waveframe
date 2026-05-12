@@ -4,8 +4,8 @@ import { SettingsPanel } from './organisms/SettingsPanel';
 import { CodeBlock } from './atoms/CodeBlock';
 import { usePersistentSettings } from './hooks/usePersistentSettings';
 import { highlightCode } from './utils';
-import { TrackInfo, WaveframeTheme, WaveformConfig } from './types';
-import { WaveframeEngine } from './core/WaveframeEngine';
+import { TrackInfo } from './types';
+import { WaveframeController } from './core/WaveframeController';
 import { useWaveframeStore } from './hooks/useWaveframeStore';
 
 const LIGHT_THEME = { bg: '#ffffff', primary: '#3b82f6', text: '#111827', border: '#f3f4f6' };
@@ -31,20 +31,26 @@ function App() {
   const [waveformConfig, setWaveformConfig] = usePersistentSettings('waveform_config', defaultWaveformConfig);
   const [scale, setScale] = usePersistentSettings('scale', 1);
 
-  // Advanced: Manually managing the engine for uploaded files
-  const engine = useMemo(() => new WaveframeEngine(), []);
-  const { isPlaying, volume, muted, isAnalyzing, peaks } = useWaveframeStore(engine);
+  // Advanced: Manually managing the controller for uploaded files
+  const controller = useMemo(() => new WaveframeController(), []);
+  
+  // Use selectors for precise re-renders
+  const isPlaying = useWaveframeStore(controller, s => s.isPlaying);
+  const volume = useWaveframeStore(controller, s => s.volume);
+  const muted = useWaveframeStore(controller, s => s.muted);
+  const isAnalyzing = useWaveframeStore(controller, s => s.isAnalyzing);
+  const peaks = useWaveframeStore(controller, s => s.peaks);
 
   // The media to provide to the player
   const media = trackInfo.audioUrl || '';
 
   const handleClearPeaks = useCallback(() => {
-    engine.load(media, []);
-  }, [engine, media]);
+    controller.load(media, []);
+  }, [controller, media]);
 
   const handleAnalyze = useCallback(async () => {
-    engine.analyze(512);
-  }, [engine]);
+    controller.analyze(512);
+  }, [controller]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,9 +61,9 @@ function App() {
         artist: 'Local File',
         audioUrl: '' // Clear URL since we use the file
       });
-      engine.load(file);
+      controller.load(file);
     }
-  }, [engine, trackInfo, setTrackInfo]);
+  }, [controller, trackInfo, setTrackInfo]);
 
   const handleArtworkUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,8 +80,8 @@ function App() {
     setTheme(LIGHT_THEME);
     setWaveformConfig(defaultWaveformConfig);
     setScale(1);
-    engine.load(defaultTrackInfo.audioUrl, []);
-  }, [engine, setTrackInfo, setTheme, setWaveformConfig, setScale, defaultTrackInfo, defaultWaveformConfig]);
+    controller.load(defaultTrackInfo.audioUrl, []);
+  }, [controller, setTrackInfo, setTheme, setWaveformConfig, setScale, defaultTrackInfo, defaultWaveformConfig]);
 
   const [copied, setCopied] = useState(false);
 
@@ -162,7 +168,7 @@ function App() {
                 height={waveformConfig.height * scale}
                 theme={theme}
                 className="w-full"
-                engine={engine}
+                controller={controller}
               />
             </div>
           </div>
@@ -190,9 +196,9 @@ function App() {
         onFileUpload={handleFileUpload}
         onArtworkUpload={handleArtworkUpload}
         onReset={handleReset}
-        onTogglePlay={() => engine.togglePlay()}
-        onSetVolume={(v) => engine.setVolume(v)}
-        onSetMuted={(m) => engine.setMuted(m)}
+        onTogglePlay={() => controller.togglePlay()}
+        onSetVolume={(v) => controller.setVolume(v)}
+        onSetMuted={(m) => controller.setMuted(m)}
         onThemeChange={(t) => setTheme({ ...theme, ...t })}
         onTrackChange={(t) => setTrackInfo({ ...trackInfo, ...t })}
         onConfigChange={(c) => setWaveformConfig({ ...waveformConfig, ...c })}
