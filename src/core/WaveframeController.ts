@@ -188,15 +188,15 @@ export class WaveframeController {
   /**
    * Toggles playback between playing and paused.
    */
-  public togglePlay() {
-    this.player.togglePlay();
+  public async togglePlay() {
+    return await this.player.togglePlay();
   }
 
   /**
    * Starts audio playback.
    */
-  public play() {
-    this.player.play();
+  public async play() {
+    return await this.player.play();
   }
 
   /**
