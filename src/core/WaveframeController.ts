@@ -48,6 +48,7 @@ export class WaveframeController {
 
   private _media: string | Blob | null = null;
   private _objectUrl: string | null = null;
+  private _isDisposed: boolean = false;
 
   /**
    * Creates a new instance of the WaveframeController.
@@ -68,6 +69,13 @@ export class WaveframeController {
     this.player.subscribe((playerState) => {
       this.updateState({ ...playerState });
     });
+  }
+
+  /**
+   * Returns whether the controller has been disposed and is no longer usable.
+   */
+  public get isDisposed(): boolean {
+    return this._isDisposed;
   }
 
   /**
@@ -132,6 +140,7 @@ export class WaveframeController {
       this.updateState({ ...playerState });
     });
 
+    this._isDisposed = false;
     this.updateState({
       ...this.player.state,
       peaks: [],
@@ -270,6 +279,7 @@ export class WaveframeController {
    * Disposes of the controller, pausing playback and clearing all listeners and resources.
    */
   public dispose() {
+    this._isDisposed = true;
     this.revokeOldSource();
     this.player.dispose();
     this.analyzer.dispose();
