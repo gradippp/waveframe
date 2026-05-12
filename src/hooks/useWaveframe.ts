@@ -51,6 +51,16 @@ export const useWaveframe = (
   );
   const controller = providedController || internalController;
 
+  // React 18 Strict Mode Fix:
+  // If the component remounts, useMemo will return the same instance, but
+  // the previous unmount's cleanup will have called dispose().
+  // We check if it's disposed and reset it if so.
+  useEffect(() => {
+    if (!providedController && internalController.isDisposed) {
+      internalController.reset();
+    }
+  }, [internalController, providedController]);
+
   // Get reactive state
   const state = useWaveframeStore(controller);
 
