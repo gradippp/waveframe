@@ -71,6 +71,11 @@ export interface WaveframePlayerProps {
    */
   barGap?: number;
   /**
+   * Non-linear power scale to increase detail (e.g. 1.0-4.0).
+   * @default 1.0
+   */
+  powerScale?: number;
+  /**
    * Custom theme configuration
    */
   theme?: WaveframeTheme;
@@ -101,6 +106,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   resolution = 'auto',
   barWidth = 2,
   barGap = 1,
+  powerScale = 1.0,
   theme,
   controller: providedController,
 }) => {
@@ -158,7 +164,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
       className={`group relative flex flex-col md:flex-row items-stretch gap-6 p-6 bg-[var(--wf-bg-color,white)] border border-[var(--wf-border-color,#f3f4f6)] rounded-[var(--wf-rounded,1rem)] shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${className}`}
       style={mergedStyle}
     >
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32">
         <ArtworkOverlay 
           artworkUrl={resolvedArtworkUrl} 
           title={title} 
@@ -213,6 +219,7 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
             resolution={resolution}
             barWidth={barWidth}
             barGap={barGap}
+            powerScale={powerScale}
           />
         </div>
       </div>

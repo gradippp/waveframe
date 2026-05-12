@@ -19,15 +19,16 @@ export const resamplePeaks = (peaks: number[], targetCount: number): number[] =>
   const ratio = peaks.length / targetCount;
 
   if (ratio > 1) {
-    // Downsampling: Bucket Max
+    // Downsampling: RMS (Root Mean Square) to preserve dynamics and prevent 'sausage' flattening
     for (let i = 0; i < targetCount; i++) {
-      let max = 0;
+      let sumSquares = 0;
       const start = Math.floor(i * ratio);
       const end = Math.floor((i + 1) * ratio);
+      const count = end - start;
       for (let j = start; j < end; j++) {
-        if (peaks[j] > max) max = peaks[j];
+        sumSquares += peaks[j] * peaks[j];
       }
-      resampled[i] = max;
+      resampled[i] = count > 0 ? Math.sqrt(sumSquares / count) : 0;
     }
   } else {
     // Upsampling: Linear Interpolation

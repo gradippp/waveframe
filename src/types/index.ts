@@ -75,4 +75,6 @@ export interface WaveformConfig {
   barGap: number;
   /** The total height of the waveform in pixels */
   height: number;
+  /** Non-linear power scale to increase detail (e.g. 1.0-4.0). Default 1.0 (linear). */
+  powerScale?: number;
 }

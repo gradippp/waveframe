@@ -120,7 +120,7 @@ export const Waveform: React.FC<WaveformProps> = memo(({
       pCtx.lineCap = 'round';
       pCtx.lineWidth = actualBarWidth;
 
-      const centerY = height / 2;
+        const centerY = height / 2;
 
       peaks.forEach((peak, index) => {
         if (peak <= 0) return;

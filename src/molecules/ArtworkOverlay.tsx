@@ -24,7 +24,7 @@ export const ArtworkOverlay: React.FC<ArtworkOverlayProps> = memo(({
   isLoading
 }) => {
   return (
-    <div className="relative flex-shrink-0 w-full md:w-auto md:h-full aspect-square overflow-hidden rounded-[var(--wf-artwork-rounded,0.75rem)] shadow-lg group/artwork">
+    <div className="relative w-full h-full overflow-hidden rounded-[var(--wf-artwork-rounded,0.75rem)] shadow-lg group/artwork">
       <div className={`w-full h-full transition-all duration-700 ${isLoading ? 'blur-md scale-110' : ''}`}>
         {artworkUrl ? (
           <img
