@@ -18,28 +18,12 @@ export const resamplePeaks = (peaks: number[], targetCount: number): number[] =>
   const resampled = new Array(targetCount);
   const ratio = peaks.length / targetCount;
 
-  if (ratio > 1) {
-    // Downsampling: RMS (Root Mean Square) to preserve dynamics and prevent 'sausage' flattening
-    for (let i = 0; i < targetCount; i++) {
-      let sumSquares = 0;
-      const start = Math.floor(i * ratio);
-      const end = Math.floor((i + 1) * ratio);
-      const count = end - start;
-      for (let j = start; j < end; j++) {
-        sumSquares += peaks[j] * peaks[j];
-      }
-      resampled[i] = count > 0 ? Math.sqrt(sumSquares / count) : 0;
-    }
-  } else {
-    // Upsampling: Linear Interpolation
-    for (let i = 0; i < targetCount; i++) {
-      const position = i * ratio;
-      const index = Math.floor(position);
-      const nextIndex = Math.min(index + 1, peaks.length - 1);
-      const fraction = position - index;
-      resampled[i] = peaks[index] + (peaks[nextIndex] - peaks[index]) * fraction;
-    }
+  // Simple Nearest-Neighbor: Just pick the raw peak at the given interval
+  // This preserves the exact jagged nature of the original audio without artificially smoothing or flattening it.
+  for (let i = 0; i < targetCount; i++) {
+    resampled[i] = peaks[Math.floor(i * ratio)];
   }
+  
   return resampled;
 };
 
