@@ -56,9 +56,10 @@ const App = () => {
 
 Waveframe separates playback logic from the UI to allow for custom implementations.
 
-- **useWaveframe**: A hook for controlling the player state and analysis.
-- **WaveframeEngine**: The core logic class.
-- **Waveform**: A component for rendering peaks.
+- **useWaveframe**: A hook for managing the `WaveframeController` lifecycle.
+- **WaveframeController**: The core logic class (vanilla JS).
+- **useWaveframeStore**: A selector-based hook for reactive state subscriptions.
+- **Waveform**: A "smart" component for rendering peaks with internal reactivity.
 
 For technical guides on building custom layouts or handling file workflows, refer to the full documentation.
 

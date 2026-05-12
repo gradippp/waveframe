@@ -1,34 +1,34 @@
 import { useSyncExternalStore } from 'react';
-import { WaveframeEngine, EngineState } from '../core/WaveframeEngine';
+import { WaveframeController, EngineState } from '../core/WaveframeController';
 
 /**
- * A React hook that synchronizes a WaveframeEngine's state with a React component.
+ * A React hook that synchronizes a WaveframeController's state with a React component.
  * 
- * It uses `useSyncExternalStore` for high-performance updates, ensuring that 
- * the component only re-renders when the engine's state snapshot actually changes.
+ * It supports an optional selector function to subscribe to specific parts of the state,
+ * preventing unnecessary re-renders when unrelated state changes.
  * 
- * @param engine The WaveframeEngine instance to subscribe to.
- * @returns The current EngineState (isPlaying, currentTime, peaks, etc.).
+ * @param controller The WaveframeController instance to subscribe to.
+ * @param selector An optional function to select a specific slice of the state.
+ * @returns The selected state or the full EngineState if no selector is provided.
  * 
  * @example
  * ```tsx
- * const MyPlayer = ({ engine }: { engine: WaveframeEngine }) => {
- *   const { isPlaying, currentTime, duration } = useWaveframeStore(engine);
+ * // Subscribe only to isPlaying
+ * const isPlaying = useWaveframeStore(controller, state => state.isPlaying);
  * 
- *   return (
- *     <div>
- *       <button onClick={() => engine.togglePlay()}>
- *         {isPlaying ? 'Pause' : 'Play'}
- *       </button>
- *       <p>{currentTime.toFixed(2)} / {duration.toFixed(2)}</p>
- *     </div>
- *   );
- * };
+ * // Subscribe to the full state
+ * const state = useWaveframeStore(controller);
  * ```
  */
-export const useWaveframeStore = (engine: WaveframeEngine): EngineState => {
+export function useWaveframeStore<T = EngineState>(
+  controller: WaveframeController,
+  selector?: (state: EngineState) => T
+): T {
   return useSyncExternalStore(
-    (callback) => engine.subscribe(callback),
-    () => engine.getSnapshot()
+    (callback) => controller.subscribe(callback),
+    () => {
+      const state = controller.getSnapshot();
+      return selector ? selector(state) : (state as unknown as T);
+    }
   );
-};
+}

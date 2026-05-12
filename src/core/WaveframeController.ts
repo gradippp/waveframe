@@ -2,7 +2,7 @@ import { PlayerCore, PlayerState } from './PlayerCore';
 import { PeakAnalyzer } from './PeakAnalyzer';
 
 /**
- * Represents the complete state of the Waveframe engine, combining playback and analysis.
+ * Represents the complete state of the Waveframe controller, combining playback and analysis.
  */
 export type EngineState = PlayerState & {
   /** The current set of generated or provided waveform peaks (0-1 range) */
@@ -26,21 +26,21 @@ export type EngineListener = (state: EngineState) => void;
  * 
  * @example
  * ```typescript
- * const engine = new WaveframeEngine();
+ * const controller = new WaveframeController();
  * 
  * // Load from URL (automatic analysis if peaks omitted)
- * engine.load('https://example.com/audio.mp3');
+ * controller.load('https://example.com/audio.mp3');
  * 
  * // Load from Blob with pre-computed peaks
- * engine.load(myBlob, [0.1, 0.5, 0.8]);
+ * controller.load(myBlob, [0.1, 0.5, 0.8]);
  * 
  * // Subscription
- * const unsubscribe = engine.subscribe((state) => {
+ * const unsubscribe = controller.subscribe((state) => {
  *   console.log('Current time:', state.currentTime);
  * });
  * ```
  */
-export class WaveframeEngine {
+export class WaveframeController {
   private player: PlayerCore;
   private analyzer: PeakAnalyzer;
   private listeners: Set<EngineListener> = new Set();
@@ -50,7 +50,7 @@ export class WaveframeEngine {
   private _objectUrl: string | null = null;
 
   /**
-   * Creates a new instance of the WaveframeEngine.
+   * Creates a new instance of the WaveframeController.
    * Initializes internal PlayerCore and PeakAnalyzer.
    */
   constructor() {
@@ -105,7 +105,40 @@ export class WaveframeEngine {
     return this._state;
   }
 
+  /**
+   * Returns the current engine state.
+   */
+  public get state(): EngineState {
+    return this._state;
+  }
+
   // --- Actions ---
+
+  /**
+   * Resets the audio player and analyzer, clearing state and current media.
+   */
+  public reset() {
+    this.revokeOldSource();
+    this._media = null;
+    this.player.dispose();
+    this.analyzer.dispose();
+    
+    // Re-initialize player and analyzer
+    this.player = new PlayerCore();
+    this.analyzer = new PeakAnalyzer();
+
+    // Re-subscribe to new player
+    this.player.subscribe((playerState) => {
+      this.updateState({ ...playerState });
+    });
+
+    this.updateState({
+      ...this.player.state,
+      peaks: [],
+      isAnalyzing: false,
+      error: null,
+    });
+  }
 
   /**
    * Revokes any existing Object URLs to prevent memory leaks.
@@ -129,37 +162,37 @@ export class WaveframeEngine {
    * @param peaks Optional pre-generated peaks for the waveform.
    */
   public load(media: string | Blob, peaks?: number[]) {
-    const isNewMedia = this._media !== media;
+    // Idempotency check: if media is the same, don't reload
+    if (this._media === media) {
+      if (peaks && (peaks.length !== this._state.peaks.length)) {
+        this.updateState({ peaks });
+      }
+      return;
+    }
     
-    if (isNewMedia) {
-      this.revokeOldSource();
-      this._media = media;
+    this.revokeOldSource();
+    this._media = media;
 
-      let sourceUrl: string;
-      if (typeof media === 'string') {
-        sourceUrl = media;
-      } else {
-        this._objectUrl = URL.createObjectURL(media);
-        sourceUrl = this._objectUrl;
-      }
+    let sourceUrl: string;
+    if (typeof media === 'string') {
+      sourceUrl = media;
+    } else {
+      this._objectUrl = URL.createObjectURL(media);
+      sourceUrl = this._objectUrl;
+    }
 
-      this.player.setSource(sourceUrl);
-      
-      const hasPeaks = peaks && peaks.length > 0;
-      this.updateState({ 
-        peaks: peaks || [], 
-        isAnalyzing: false, 
-        error: null 
-      });
+    this.player.setSource(sourceUrl);
+    
+    const hasPeaks = peaks && peaks.length > 0;
+    this.updateState({ 
+      peaks: peaks || [], 
+      isAnalyzing: false, 
+      error: null 
+    });
 
-      // Automatic analysis if peaks are missing
-      if (!hasPeaks) {
-        this.analyze();
-      }
-    } else if (peaks && (peaks.length !== this._state.peaks.length)) {
-      // Update peaks only if they actually look different (length check as a simple proxy for deep comparison)
-      // This helps avoid reloads if the parent passes a new array reference with same content
-      this.updateState({ peaks });
+    // Automatic analysis if peaks are missing
+    if (!hasPeaks) {
+      this.analyze();
     }
   }
 
@@ -188,15 +221,15 @@ export class WaveframeEngine {
   /**
    * Toggles playback between playing and paused.
    */
-  public togglePlay() {
-    this.player.togglePlay();
+  public async togglePlay() {
+    return await this.player.togglePlay();
   }
 
   /**
    * Starts audio playback.
    */
-  public play() {
-    this.player.play();
+  public async play() {
+    return await this.player.play();
   }
 
   /**
@@ -234,7 +267,7 @@ export class WaveframeEngine {
   }
 
   /**
-   * Disposes of the engine, pausing playback and clearing all listeners and resources.
+   * Disposes of the controller, pausing playback and clearing all listeners and resources.
    */
   public dispose() {
     this.revokeOldSource();

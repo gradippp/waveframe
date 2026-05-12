@@ -1,5 +1,5 @@
-import { useMemo, useEffect } from 'react';
-import { WaveframeEngine, EngineState } from '../core/WaveframeEngine';
+import { useMemo, useEffect, useRef } from 'react';
+import { WaveframeController } from '../core/WaveframeController';
 import { useWaveframeStore } from './useWaveframeStore';
 
 /**
@@ -8,76 +8,84 @@ import { useWaveframeStore } from './useWaveframeStore';
 export interface UseWaveframeOptions {
   /** Optional pre-computed peaks to skip automatic analysis */
   peaks?: number[];
-  /** Optional external engine instance for shared playback across components */
-  engine?: WaveframeEngine;
+  /** Optional external controller instance for shared playback across components */
+  controller?: WaveframeController;
+  /** Whether to automatically start playback when media is loaded */
+  autoPlay?: boolean;
 }
 
 /**
- * A headless hook that provides full control over the Waveframe engine.
+ * A headless hook that manages the lifecycle of a WaveframeController.
  * 
- * It manages the engine's lifecycle, loads the provided media, and returns 
- * the current state along with playback controls.
+ * It returns a stable controller instance that can be passed to components
+ * like <Waveform /> or used for custom playback logic.
  * 
  * @param media The audio source (URL string or Blob/File object).
- * @param options Additional configuration and an optional external engine.
+ * @param options Additional configuration and an optional external controller.
  * 
  * @example
  * ```tsx
- * const { state, togglePlay, seek } = useWaveframe('https://example.com/audio.mp3');
+ * const { controller, state } = useWaveframe('https://example.com/audio.mp3');
  * 
  * return (
  *   <div>
- *     <button onClick={togglePlay}>{state.isPlaying ? 'Pause' : 'Play'}</button>
- *     <div onClick={(e) => seek(0.5)}>Seek to Middle</div>
+ *     <Waveform controller={controller} />
+ *     <button onClick={() => controller.togglePlay()}>
+ *       {state.isPlaying ? 'Pause' : 'Play'}
+ *     </button>
  *   </div>
  * );
  * ```
  */
-export const useWaveframe = (media: string | Blob | undefined, options: UseWaveframeOptions = {}) => {
-  const { peaks, engine: providedEngine } = options;
+export const useWaveframe = (
+  media: string | Blob | undefined, 
+  options: UseWaveframeOptions = {}
+) => {
+  const { peaks, controller: providedController, autoPlay } = options;
+  const isMounted = useRef(false);
 
-  // Initialize engine (only once)
-  const internalEngine = useMemo(() => providedEngine || new WaveframeEngine(), [providedEngine]);
-  const engine = providedEngine || internalEngine;
+  // Initialize controller (only once)
+  const internalController = useMemo(
+    () => providedController || new WaveframeController(), 
+    [providedController]
+  );
+  const controller = providedController || internalController;
 
-  // Subscribe to engine state
-  const state = useWaveframeStore(engine);
+  // Get reactive state
+  const state = useWaveframeStore(controller);
 
-  // Sync media with engine
+  // Sync media with controller
   useEffect(() => {
+    isMounted.current = true;
+    
     if (media) {
-      engine.load(media, peaks);
+      controller.load(media, peaks);
+      if (autoPlay) {
+        controller.play().catch(() => {
+          // Auto-play might be blocked by browser policy, ignore
+        });
+      }
     }
-  }, [engine, media, peaks]);
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, [controller, media, peaks, autoPlay]);
 
   // Handle disposal
   useEffect(() => {
     return () => {
       // Only dispose if we created it internally
-      if (!providedEngine) {
-        internalEngine.dispose();
+      if (!providedController) {
+        internalController.dispose();
       }
     };
-  }, [internalEngine, providedEngine]);
+  }, [internalController, providedController]);
 
   return {
-    /** The current reactive state of the engine */
+    /** The stable WaveframeController instance */
+    controller,
+    /** The reactive engine state */
     state,
-    /** The raw WaveframeEngine instance for advanced usage */
-    engine,
-    /** Toggles playback between playing and paused */
-    togglePlay: () => engine.togglePlay(),
-    /** Starts audio playback */
-    play: () => engine.play(),
-    /** Pauses audio playback */
-    pause: () => engine.pause(),
-    /** Seeks to a specific percentage (0-1) */
-    seek: (percentage: number) => engine.seek(percentage),
-    /** Sets the playback volume (0-1) */
-    setVolume: (v: number) => engine.setVolume(v),
-    /** Mutes or unmutes the audio */
-    setMuted: (m: boolean) => engine.setMuted(m),
-    /** Manually triggers a re-analysis of the current media */
-    analyze: (samples?: number) => engine.analyze(samples),
   };
 };
