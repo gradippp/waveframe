@@ -24,6 +24,7 @@ function App() {
     barWidth: 2,
     barGap: 1,
     height: 100,
+    powerScale: 1.0,
   };
 
   const [trackInfo, setTrackInfo] = usePersistentSettings('track_info', defaultTrackInfo);
@@ -116,6 +117,7 @@ function App() {
   resolution=${typeof waveformConfig.resolution === 'string' ? `"${waveformConfig.resolution}"` : waveformConfig.resolution}
   barWidth={${waveformConfig.barWidth}}
   barGap={${waveformConfig.barGap}}
+  powerScale={${waveformConfig.powerScale}}
   height={${Math.round(waveformConfig.height * scale)}}
   theme={{
     "bg": "${theme.bg}",

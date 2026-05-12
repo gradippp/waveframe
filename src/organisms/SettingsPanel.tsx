@@ -212,6 +212,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = memo(({
               {[64, 128, 256, 512, 1024].map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
+          <label className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
+            Power Scale: {config.powerScale?.toFixed(1) || '1.0'}
+            <input
+              type="range"
+              min="1"
+              max="4"
+              step="0.1"
+              value={config.powerScale || 1.0}
+              onChange={(e) => onConfigChange({ powerScale: Number(e.target.value) })}
+              className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+          </label>
           {config.resolution === 'auto' && (
             <>
               <label className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">
