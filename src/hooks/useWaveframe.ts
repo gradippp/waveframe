@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { WaveframeController } from '../core/WaveframeController';
+import { useWaveframeStore } from './useWaveframeStore';
 
 /**
  * Configuration options for the `useWaveframe` hook.
@@ -24,12 +25,14 @@ export interface UseWaveframeOptions {
  * 
  * @example
  * ```tsx
- * const { controller } = useWaveframe('https://example.com/audio.mp3');
+ * const { controller, state } = useWaveframe('https://example.com/audio.mp3');
  * 
  * return (
  *   <div>
  *     <Waveform controller={controller} />
- *     <button onClick={() => controller.togglePlay()}>Play/Pause</button>
+ *     <button onClick={() => controller.togglePlay()}>
+ *       {state.isPlaying ? 'Pause' : 'Play'}
+ *     </button>
  *   </div>
  * );
  * ```
@@ -47,6 +50,9 @@ export const useWaveframe = (
     [providedController]
   );
   const controller = providedController || internalController;
+
+  // Get reactive state
+  const state = useWaveframeStore(controller);
 
   // Sync media with controller
   useEffect(() => {
@@ -79,5 +85,7 @@ export const useWaveframe = (
   return {
     /** The stable WaveframeController instance */
     controller,
+    /** The reactive engine state */
+    state,
   };
 };

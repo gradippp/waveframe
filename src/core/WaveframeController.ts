@@ -105,7 +105,40 @@ export class WaveframeController {
     return this._state;
   }
 
+  /**
+   * Returns the current engine state.
+   */
+  public get state(): EngineState {
+    return this._state;
+  }
+
   // --- Actions ---
+
+  /**
+   * Resets the audio player and analyzer, clearing state and current media.
+   */
+  public reset() {
+    this.revokeOldSource();
+    this._media = null;
+    this.player.dispose();
+    this.analyzer.dispose();
+    
+    // Re-initialize player and analyzer
+    this.player = new PlayerCore();
+    this.analyzer = new PeakAnalyzer();
+
+    // Re-subscribe to new player
+    this.player.subscribe((playerState) => {
+      this.updateState({ ...playerState });
+    });
+
+    this.updateState({
+      ...this.player.state,
+      peaks: [],
+      isAnalyzing: false,
+      error: null,
+    });
+  }
 
   /**
    * Revokes any existing Object URLs to prevent memory leaks.

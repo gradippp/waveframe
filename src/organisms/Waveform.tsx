@@ -25,6 +25,10 @@ interface WaveformProps {
   barWidth?: number;
   /** Gap between bars in pixels (if resolution is 'auto') */
   barGap?: number;
+  /** Overall amplitude multiplier (default 1.0) */
+  amplitude?: number;
+  /** Non-linear power scale to increase detail (e.g. 0.7-0.9 reduces 'sausage' look). Default 1.0 (linear). */
+  powerScale?: number;
 }
 
 /**
@@ -42,6 +46,8 @@ export const Waveform: React.FC<WaveformProps> = memo(({
   resolution = 'auto',
   barWidth = 2,
   barGap = 1,
+  amplitude = 1.0,
+  powerScale = 1.0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,8 +68,15 @@ export const Waveform: React.FC<WaveformProps> = memo(({
       ? Math.floor(containerWidth / (barWidth + barGap))
       : resolution;
       
-    return resamplePeaks(rawPeaks, Math.max(1, targetCount));
-  }, [providedPeaks, enginePeaks, containerWidth, resolution, barWidth, barGap]);
+    let resampled = resamplePeaks(rawPeaks, Math.max(1, targetCount));
+
+    // Apply power scaling and amplitude
+    if (powerScale !== 1.0 || amplitude !== 1.0) {
+      resampled = resampled.map(p => Math.pow(p, powerScale) * amplitude);
+    }
+
+    return resampled;
+  }, [providedPeaks, enginePeaks, containerWidth, resolution, barWidth, barGap, amplitude, powerScale]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -107,14 +120,17 @@ export const Waveform: React.FC<WaveformProps> = memo(({
       pCtx.lineCap = 'round';
       pCtx.lineWidth = actualBarWidth;
 
+      const centerY = height / 2;
+
       peaks.forEach((peak, index) => {
         if (peak <= 0) return;
         
         const x = index * (actualBarWidth + actualBarGap) + actualBarWidth / 2;
-        const barHeight = peak * height * 0.8;
-        // Anchor to bottom (accounting for line cap)
-        const yEnd = height - actualBarWidth / 2;
-        const yStart = yEnd - barHeight;
+        const barHeight = Math.max(actualBarWidth, peak * height * 0.8);
+        
+        // Center the bar vertically
+        const yStart = centerY - barHeight / 2;
+        const yEnd = centerY + barHeight / 2;
 
         ctx.beginPath();
         ctx.strokeStyle = waveColor;
