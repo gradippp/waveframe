@@ -84,6 +84,10 @@ export interface WaveframePlayerProps {
    * If provided, the player will sync with this controller instead of creating its own.
    */
   controller?: WaveframeController;
+  /**
+   * Whether to automatically analyze the audio if peaks are not provided. Defaults to true.
+   */
+  analyze?: boolean;
 }
 
 /**
@@ -109,11 +113,13 @@ export const WaveframePlayer: React.FC<WaveframePlayerProps> = memo(({
   powerScale = 1.0,
   theme,
   controller: providedController,
+  analyze = true,
 }) => {
   // Use the headless hook for controller management
   const { controller } = useWaveframe(media, {
     peaks: propPeaks,
     controller: providedController,
+    analyze,
   });
 
   // Subscribe to needed state slices for the UI

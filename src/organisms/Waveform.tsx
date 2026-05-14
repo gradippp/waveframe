@@ -147,7 +147,7 @@ export const Waveform: React.FC<WaveformProps> = memo(({
     };
 
     draw();
-  }, [peaks, waveColor, progressColor, resolution, barWidth, barGap, height]);
+  }, [peaks, waveColor, progressColor, resolution, barWidth, barGap, height, containerWidth]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (containerRef.current && duration) {
