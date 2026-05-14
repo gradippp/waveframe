@@ -12,6 +12,8 @@ export interface UseWaveframeOptions {
   controller?: WaveframeController;
   /** Whether to automatically start playback when media is loaded */
   autoPlay?: boolean;
+  /** Whether to automatically analyze the audio if peaks are not provided. Defaults to true. */
+  analyze?: boolean;
 }
 
 /**
@@ -41,7 +43,7 @@ export const useWaveframe = (
   media: string | Blob | undefined, 
   options: UseWaveframeOptions = {}
 ) => {
-  const { peaks, controller: providedController, autoPlay } = options;
+  const { peaks, controller: providedController, autoPlay, analyze = true } = options;
   const isMounted = useRef(false);
 
   // Initialize controller (only once)
@@ -69,7 +71,7 @@ export const useWaveframe = (
     isMounted.current = true;
     
     if (media) {
-      controller.load(media, peaks);
+      controller.load(media, peaks, analyze);
       if (autoPlay) {
         controller.play().catch(() => {
           // Auto-play might be blocked by browser policy, ignore
@@ -80,7 +82,7 @@ export const useWaveframe = (
     return () => {
       isMounted.current = false;
     };
-  }, [controller, media, peaks, autoPlay]);
+  }, [controller, media, peaks, autoPlay, analyze]);
 
   // Handle disposal
   useEffect(() => {

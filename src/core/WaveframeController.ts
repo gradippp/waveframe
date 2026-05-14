@@ -165,12 +165,13 @@ export class WaveframeController {
    * If a string is passed, it's treated as a URL and used directly for playback.
    * If a Blob is passed, an Object URL is created for playback.
    * 
-   * If `peaks` are not provided, it automatically triggers an analysis.
+   * If `peaks` are not provided, it automatically triggers an analysis unless `analyze` is set to false.
    * 
    * @param media The audio source (URL string or Blob/File object).
    * @param peaks Optional pre-generated peaks for the waveform.
+   * @param analyze Whether to automatically analyze the audio if peaks are missing. Defaults to true.
    */
-  public load(media: string | Blob, peaks?: number[]) {
+  public load(media: string | Blob, peaks?: number[], analyze: boolean = true) {
     // Idempotency check: if media is the same, don't reload
     if (this._media === media) {
       if (peaks && (peaks.length !== this._state.peaks.length)) {
@@ -199,8 +200,8 @@ export class WaveframeController {
       error: null 
     });
 
-    // Automatic analysis if peaks are missing
-    if (!hasPeaks) {
+    // Automatic analysis if peaks are missing and analyze is enabled
+    if (!hasPeaks && analyze) {
       this.analyze();
     }
   }
